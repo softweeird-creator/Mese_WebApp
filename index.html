@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MESE · Sistema de gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--az:#12335f;--az2:#1d4c8f;--vd:#2e7d5b;--vc:#e6f2ec;--ac:#e9eff7;--ln:#cfd8e6;--tx:#1c2432;--gr:#566074;--rj:#9a2f2f}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font:17px/1.5 "Source Sans 3","Segoe UI",sans-serif;color:var(--tx);background:#f4f6fa;display:grid;grid-template-columns:250px 1fr}
+:focus-visible{outline:3px solid var(--vd);outline-offset:2px}
+h1{font-size:1.9rem;margin:0 0 .2rem;color:var(--az)}h3{margin:0 0 .6rem;color:var(--az);font-size:1.05rem}
+nav{background:var(--az);color:#fff;position:sticky;top:0;height:100vh;padding:1.4rem 0;display:flex;flex-direction:column;gap:2px}
+.logo{font-size:1.7rem;font-weight:700;padding:0 1.4rem 1.2rem;border-bottom:1px solid #ffffff33;margin-bottom:.8rem}.logo small{display:block;font-size:.8rem;font-weight:400;opacity:.8}
+nav a{padding:.8rem 1.4rem;font-weight:600;color:#fff;text-decoration:none}nav a:hover{background:var(--az2)}nav a.on{background:#fff;color:var(--az);box-shadow:inset 5px 0 0 var(--vd)}
+main{padding:2rem clamp(1rem,3vw,2.5rem) 4rem;max-width:1150px}
+.sub{color:var(--gr);margin:0 0 1.2rem}.top{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start}
+.guia{background:var(--ac);border-left:5px solid var(--az2);padding:.7rem 1rem;margin:0 0 1.2rem;color:var(--az)}
+button,.btn{font:600 1.05rem inherit;cursor:pointer}
+.btn{min-height:52px;padding:.5rem 1.4rem;border:2px solid var(--vd);border-radius:6px;background:var(--vd);color:#fff}.btn:hover{background:#25674a}
+.btn.sec{background:#fff;color:var(--az);border-color:var(--az)}.btn.sec:hover{background:var(--ac)}.btn.ro{background:var(--rj);border-color:var(--rj)}
+.mini{min-height:40px;padding:.2rem .8rem;border:1px solid var(--az2);border-radius:6px;background:#fff;color:var(--az);font-size:.95rem}.mini.d{color:var(--rj);border-color:var(--rj)}.mini:hover{background:var(--ac)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem}.cards a{background:#fff;border:1px solid var(--ln);border-top:5px solid var(--vd);border-radius:6px;padding:1.3rem;color:inherit;text-decoration:none;min-height:130px}.cards a:hover{border-top-color:var(--az2)}.cards strong{display:block;font-size:1.25rem;color:var(--az)}.cards span{color:var(--gr)}.cards b{font-size:1.8rem;color:var(--vd);display:block}
+.fl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;align-items:end;margin-bottom:1rem}
+label{display:block;font-weight:600;margin-bottom:.2rem}
+input,select{width:100%;min-height:52px;padding:.5rem .9rem;border:2px solid #9fb0c9;border-radius:6px;font:inherit;background:#fff;color:var(--tx)}input:focus,select:focus{border-color:var(--vd)}
+.bar2{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:space-between;align-items:center;background:var(--az);color:#fff;padding:.7rem 1rem;border-radius:6px 6px 0 0}.cnt{font-size:1.15rem;font-weight:700}
+.seg{display:flex;gap:4px}.seg button{border:0;border-radius:6px;padding:.5rem 1rem;background:#ffffff26;color:#fff;min-height:42px}.seg button.on{background:#fff;color:var(--az)}
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--ln);border-top:0;border-radius:0 0 6px 6px}
+table{width:100%;border-collapse:collapse;min-width:680px}th{text-align:left;background:var(--ac);color:var(--az);padding:.7rem 1rem}td{padding:.7rem 1rem;border-top:1px solid var(--ln)}td:last-child{white-space:nowrap;text-align:right}td:last-child .mini{margin-left:.4rem}.vacio{padding:1.5rem;color:var(--gr)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin-top:1rem}
+.ch,.rep{background:#fff;border:1px solid var(--ln);border-radius:6px;padding:1rem 1.2rem}.rep{margin-top:1rem}
+.b{display:grid;grid-template-columns:120px 1fr 36px;gap:.6rem;align-items:center;padding:.2rem 0;font-size:.95rem}.b div{background:var(--ac);border-radius:4px;height:18px}.b i{display:block;height:100%;background:var(--vd);border-radius:4px;transition:width .3s}.ch:nth-child(even) .b i{background:var(--az2)}.b b{text-align:right}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin:1rem 0}.kp div{border:1px solid var(--ln);border-left:5px solid var(--vd);padding:.6rem 1rem;color:var(--gr)}.kp b{display:block;font-size:2rem;color:var(--az);line-height:1.1}
+fieldset{background:#fff;border:1px solid var(--ln);border-radius:6px;padding:1rem 1.3rem 1.3rem;margin:0 0 1rem}legend{font-weight:700;font-size:1.15rem;color:var(--az)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.gu{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;justify-content:flex-end}.gu p{margin:0 auto 0 0;color:var(--gr)}
+dialog{border:0;border-top:6px solid var(--rj);border-radius:8px;padding:1.5rem;max-width:520px;width:calc(100% - 2rem)}dialog::backdrop{background:#12335fcc}dialog form{display:grid;gap:1rem}dialog h2,dialog p{margin:0}
+#ok{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--vd);color:#fff;padding:.8rem 1.4rem;border-radius:6px;font-weight:600;z-index:20}
+@media(max-width:860px){body{grid-template-columns:1fr}nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:.5rem}.logo{display:none}nav a{padding:.6rem .8rem;font-size:.95rem}}
+#hoja{display:none}#pv{max-width:900px;border-top-color:var(--vd)}#pv .gu{margin-bottom:1rem}
+.hj{-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#12335f}
+.hj .pg{background:#fff;padding:14px;margin-bottom:12px}#pvb .pg{border:1px solid var(--ln)}
+.hj .hd{display:flex;align-items:center;gap:14px;margin-bottom:10px}.hj h2{margin:0;font-size:1.2rem;flex:1;text-align:center}.hj .lg{background:var(--az);color:#fff;padding:2px 10px;font-size:1.3rem;border-radius:4px}
+.hj .gd{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.hj table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.8rem;break-inside:avoid}.hj th,.hj td{border:1px solid var(--az2);padding:2px 6px}.hj th{background:var(--ac)}.hj td{color:var(--tx)}.hj td:nth-child(even),.hj .t{text-align:center}.hj .t{font-weight:700}
+@media print{body.imp{display:block;background:#fff}body.imp>*:not(#hoja){display:none!important}body.imp #hoja{display:block}.hj .pg{break-after:page;padding:0}.hj .pg:last-child{break-after:auto}@page{size:letter;margin:10mm}}
+</style></head><body>
+<nav id="nav" aria-label="Menú"></nav><main id="main"></main>
+<dialog id="dl"><form id="bf"><h2>Dar de baja</h2><p id="bn"></p><p>Pasará al panel “Bajas”. Sus datos no se borran y podrá reactivarlo.</p>
+<div><label for="bm">Motivo</label><select id="bm"><option>Cambio de domicilio</option><option>Falta de asistencia</option><option>Concluyó</option><option>Otro</option></select></div>
+<div><label for="bd">Fecha de baja</label><input id="bd" type="date" required></div>
+<div class="gu"><button type="button" class="btn sec" id="bc">Cancelar</button><button class="btn ro">Confirmar baja</button></div></form></dialog>
+<dialog id="pv"><div class="gu"><button class="btn sec" data-x>Cerrar</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div id="pvb" class="hj"></div></dialog><div id="hoja" class="hj"></div><div id="ok" hidden></div>
+<script>
+const $=(s,e=document)=>e.querySelector(s),$$=(s,e=document)=>[...e.querySelectorAll(s)];
+const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const GN=['Mujer','Hombre'],NV=['Primaria','Secundaria','Bachillerato','Licenciatura'];
+const FY={k:'y',l:'Año de ingreso',t:'n'};
+const P={
+activos:{t:'Participantes activos',s:'Quienes hoy asisten a MESE. Incluye el reporte del mes.',add:'Agregar participante',
+ f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel de estudios',o:NV},FY,{k:'m',l:'Mes de ingreso',t:'m'}],
+ c:[['Nombre',r=>r.n],['Edad',r=>r.ed+' años'],['Escuela',r=>r.nv+' · '+r.gr+'°'],['Ingreso',r=>MES[r.m-1]+' '+r.y]],
+ form:[['n','Nombre completo'],['g','Género',GN],['ed','Edad','n'],['nv','Nivel de estudios',NV],['gr','Grado','n'],['esc','Escuela'],['y','Año de ingreso','n'],['m','Mes de ingreso','m'],['mad','Madre o tutora'],['tel','Teléfono'],['col','Colonia']],act:['edit','baja']},
+historico:{t:'Registro histórico',s:'Todas las personas que han pasado por MESE.',
+ f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Último nivel',o:NV},FY,{k:'res',l:'Cómo terminó',o:['Caso de éxito','No concluyó','Sigue activo']}],
+ c:[['Nombre',r=>r.n],['Último nivel',r=>r.nv],['Ingreso',r=>r.y],['Resultado',r=>r.res]],act:[]},
+familiares:{t:'Familiares',s:'Madres, padres y tutores de los participantes.',add:'Agregar familiar',
+ f:[{k:'par',l:'Parentesco',o:['Madre','Padre','Tutor']},{k:'esl',l:'Escolaridad',o:['Hasta primaria','Secundaria','Preparatoria o más']},{k:'oc',l:'Ocupación',o:['Empleo','Comercio','Hogar']},{k:'ing',l:'Ingreso mensual',o:['Menos de $5,000','$5,000 a $8,000','Más de $8,000']}],
+ c:[['Nombre',r=>r.n],['Participante',r=>r.hijo],['Ocupación',r=>r.oc],['Teléfono',r=>r.tel]],
+ form:[['n','Nombre completo'],['par','Parentesco',['Madre','Padre','Tutor']],['hijo','Participante a su cargo'],['esl','Escolaridad',['Hasta primaria','Secundaria','Preparatoria o más']],['oc','Ocupación',['Empleo','Comercio','Hogar']],['ing','Ingreso mensual',['Menos de $5,000','$5,000 a $8,000','Más de $8,000']],['tel','Teléfono'],['g','Género',GN],['ed','Edad','n']],act:['edit']},
+bajas:{t:'Bajas',s:'Participantes que dejaron de asistir. Sus datos se conservan.',
+ f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel',o:NV},{k:'mot',l:'Motivo',o:['Cambio de domicilio','Falta de asistencia','Concluyó','Otro']},{k:'y',l:'Año de baja',t:'n'}],
+ c:[['Nombre',r=>r.n],['Fecha de baja',r=>r.fb],['Motivo',r=>r.mot],['Último grado',r=>r.nv+' · '+r.gr+'°']],act:['react']}};
+const A=(n,g,ed,nv,gr,y,m,col)=>({n,g,ed,nv,gr,y,m,col,esc:'',mad:'',tel:''});
+const DB={
+activos:[A('Ana Sofía Ramírez Torres','Mujer',10,'Primaria',5,2024,8,'Rosas de Guadalupe'),A('Luis Daniel Pérez Mora','Hombre',14,'Secundaria',2,2024,8,'Rector Díaz Rubio'),A('Camila Herrera Núñez','Mujer',17,'Bachillerato',3,2023,7,'Valle Dorado'),A('Diego Cruz Vega','Hombre',18,'Licenciatura',1,2025,9,'Rosas de Guadalupe'),A('Mateo Salgado Ruiz','Hombre',9,'Primaria',4,2024,8,'Rector Díaz Rubio'),A('Regina Ochoa León','Mujer',13,'Secundaria',1,2025,7,'Valle Dorado'),A('Sofía Barrera Luna','Mujer',11,'Primaria',6,2024,9,'Rosas de Guadalupe'),A('Emilio Cano Ruiz','Hombre',12,'Primaria',6,2024,8,'Valle Dorado')].map((r,i)=>({id:i+1,...r})),
+historico:[['Paola Jiménez Arce','Mujer','Bachillerato',3,2019,'Caso de éxito'],['Erick Barajas Díaz','Hombre','Secundaria',2,2020,'No concluyó'],['Dulce Mendoza Paz','Mujer','Primaria',4,2021,'Sigue activo'],['Iván Orozco Lira','Hombre','Secundaria',3,2019,'Caso de éxito'],['Jimena Solís Cano','Mujer','Licenciatura',2,2020,'Caso de éxito']].map((a,i)=>({id:i+1,n:a[0],g:a[1],nv:a[2],gr:a[3],y:a[4],res:a[5]})),
+familiares:[['Patricia Torres Cervantes','Madre','Ana Sofía','Secundaria','Empleo','$5,000 a $8,000','443 000 0001'],['Javier Pérez Ortiz','Padre','Luis Daniel','Secundaria','Comercio','$5,000 a $8,000','443 000 0002'],['Margarita Núñez Gil','Madre','Camila','Preparatoria o más','Hogar','Menos de $5,000','443 000 0003'],['Rubén Cruz Soto','Padre','Diego','Hasta primaria','Empleo','Más de $8,000','443 000 0004'],['Elena León Vera','Tutor','Regina','Hasta primaria','Hogar','Menos de $5,000','443 000 0005']].map((a,i)=>({id:i+1,n:a[0],par:a[1],hijo:a[2],esl:a[3],oc:a[4],ing:a[5],tel:a[6]})),
+bajas:[['Valeria Medina Soto','Mujer','Primaria',3,'Falta de asistencia','2025-03-12'],['Yohan Arréz Gallegos','Hombre','Primaria',4,'Cambio de domicilio','2024-06-04'],['Brenda Mier Ruiz','Mujer','Bachillerato',3,'Concluyó','2023-07-20']].map((a,i)=>({id:50+i,n:a[0],g:a[1],nv:a[2],gr:a[3],mot:a[4],fb:a[5],y:+a[5].slice(0,4)}))};
+DB.ind=[['Mujer',1],['Hombre',4],['Mujer',7],['Hombre',9],['Mujer',15],['Hombre',22],['Mujer',30]].map(([g,ed])=>({g,ed}));
+DB.familiares.forEach((r,i)=>{r.ed=[38,41,45,52,63][i];r.g=r.par=='Padre'?'Hombre':'Mujer'});
+let nid=100,ed=null,cur='inicio';
+const opts=(o,t,v)=>(t=='m'?MES.map((x,i)=>[i+1,x]):(o||[]).map(x=>[x,x])).map(([a,b])=>`<option value="${a}"${String(v)===String(a)?' selected':''}>${b}</option>`).join('');
+const fld=f=>`<div><label>${f.l}</label>${f.t=='n'?`<input data-k="${f.k}" type="number" placeholder="Ej. 2024">`:`<select data-k="${f.k}"><option value="">Todos</option>${opts(f.o,f.t)}</select>`}</div>`;
+const mm=[['inicio','Inicio'],['activos',P.activos.t],['historico',P.historico.t],['familiares',P.familiares.t],['bajas',P.bajas.t]];
+$('#nav').innerHTML=mm.map(([i,l])=>`<a href="#${i}" data-i="${i}">${l}</a>`).join('');
+const rep=`<div id="r-activos" class="rep" hidden><h3>Reporte del mes</h3><div class="gu" style="justify-content:flex-start;margin-bottom:1rem"><button class="btn sec" data-pv>Ver hoja de estadísticas</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div class="fl"><div><label for="rm">Mes</label><select id="rm"><option value="">Todos los meses</option>${opts(0,'m')}</select></div><div><label for="ry">Año</label><input id="ry" type="number" placeholder="Ej. 2024"></div></div><div id="rb"></div></div>`;
+$('#main').innerHTML=`<section id="inicio" class="pag"><h1>Bienvenido al sistema de MESE</h1><p class="sub">Elija una opción del menú o toque uno de los cuadros.</p><div class="cards">${Object.keys(P).map(p=>`<a href="#${p}"><b id="k-${p}"></b><strong>${P[p].t}</strong><span>${P[p].s}</span></a>`).join('')}</div></section>`
++Object.keys(P).map(p=>{const c=P[p];return `<section id="${p}" class="pag" hidden><div class="top"><div><h1>${c.t}</h1><p class="sub">${c.s}</p></div>${c.add?`<button class="btn" data-add="${p}">${c.add}</button>`:''}</div>
+<p class="guia">Elija uno o varios filtros a la vez; la lista y las gráficas cambian al instante.</p>
+<div class="fl" id="f-${p}">${c.f.map(fld).join('')}<button class="btn sec" data-clr="${p}">Quitar filtros</button></div>
+<div class="bar2"><span class="cnt" id="n-${p}"></span><div class="seg" id="v-${p}"><button data-v="l" class="on">Lista</button><button data-v="g">Gráficas</button>${p=='activos'?'<button data-v="r">Reporte del mes</button>':''}</div></div>
+<div class="tw" id="l-${p}"></div><div class="grid" id="g-${p}" hidden></div>${p=='activos'?rep:''}</section>`}).join('')
++`<section id="editor" class="pag" hidden><h1 id="et"></h1><p class="guia">Revise los datos y toque “Guardar”. Los campos marcados con * son obligatorios.</p><form id="ef"><fieldset><legend>Datos</legend><div class="cols" id="eb"></div></fieldset><div class="gu"><p>Los cambios se verán de inmediato en la lista.</p><button type="button" class="btn sec" id="ec">Cancelar</button><button class="btn">Guardar</button></div></form></section>`;
+const filt=p=>DB[p].filter(r=>P[p].f.every(f=>{const v=$(`#f-${p} [data-k=${f.k}]`).value;return !v||String(r[f.k])==v}));
+const bars=(l,rows)=>{const e=Object.entries(rows),mx=Math.max(1,...e.map(x=>x[1]));return `<div class="ch"><h3>${l}</h3>${e.map(([k,v])=>`<div class="b"><span>${h(k)}</span><div><i style="width:${v/mx*100}%"></i></div><b>${v}</b></div>`).join('')}</div>`};
+const cnt=(rs,fn,ord)=>{const m={};rs.forEach(r=>{const k=fn(r);m[k]=(m[k]||0)+1});return Object.fromEntries(Object.entries(m).sort((a,b)=>ord?ord.indexOf(a[0])-ord.indexOf(b[0]):a[0]-b[0]))};
+function upd(p){const c=P[p],rs=filt(p);$('#n-'+p).textContent='Resultados: '+rs.length;
+ const ac=(r)=>c.act.map(a=>a=='edit'?`<button class="mini" data-a="edit" data-p="${p}" data-id="${r.id}">Editar</button>`:a=='baja'?`<button class="mini d" data-a="baja" data-id="${r.id}">Dar de baja</button>`:`<button class="mini" data-a="react" data-id="${r.id}">Reactivar</button>`).join('');
+ $('#l-'+p).innerHTML=rs.length?`<table><thead><tr>${c.c.map(x=>`<th>${x[0]}`).join('')}<th></th></tr></thead><tbody>${rs.map(r=>`<tr>${c.c.map(x=>`<td>${h(x[1](r))}`).join('')}<td>${ac(r)}</tr>`).join('')}</tbody></table>`:'<p class="vacio">No hay resultados con estos filtros.</p>';
+ $('#g-'+p).innerHTML=rs.length?c.f.map(f=>bars('Por '+f.l.toLowerCase(),f.t=='m'?cnt(rs,r=>MES[r.m-1],MES):f.t=='n'?cnt(rs,r=>r[f.k]):cnt(rs,r=>r[f.k],f.o))).join(''):'<p class="vacio">No hay resultados con estos filtros.</p>';
+ $('#k-'+p).textContent=DB[p].length;if(p=='activos')repo()}
+function repo(){const m=$('#rm').value,y=$('#ry').value,rs=DB.activos.filter(r=>(!m||r.m==m)&&(!y||r.y==y)),n=g=>rs.filter(r=>r.g==g).length;hoja(rs,m,y);
+ $('#rb').innerHTML=`<p class="sub">${m?MES[m-1]:'Todos los meses'}${y?' de '+y:''}</p><div class="kp"><div><b>${rs.length}</b>Participantes</div><div><b>${n('Mujer')}</b>Mujeres</div><div><b>${n('Hombre')}</b>Hombres</div></div>`+(rs.length?`<div class="grid">${bars('Por nivel de estudios',cnt(rs,r=>r.nv,NV))}${bars('Por rango de edad',cnt(rs,r=>r.ed<=12?'0 a 12':r.ed<=18?'13 a 18':'19 o más',['0 a 12','13 a 18','19 o más']))}${bars('Por género',cnt(rs,r=>r.g,GN))}</div>`:'<p class="vacio">No hay participantes en ese mes.</p>')}
+const sm=a=>a.reduce((x,y)=>x+y,0),inr=(a,g,lo,hi)=>a.filter(r=>r.g==g&&r.ed>=lo&&r.ed<=hi).length;
+const tb=(t,L,f,m)=>{const F=sm(f),M=sm(m);return `<table><tr><th colspan=4>${t}</th></tr><tr><th colspan=2>Femeninos</th><th colspan=2>Masculinos</th></tr>${L.map((l,i)=>`<tr><td>${l}</td><td>${f[i]}</td><td>${l}</td><td>${m[i]}</td></tr>`).join('')}<tr><td colspan=2 class="t">${F}</td><td colspan=2 class="t">${M}</td></tr><tr><td colspan=2><b>TOTAL</b></td><td colspan=2 class="t">${F+M}</td></tr></table>`};
+const rt=(t,L,R,a)=>tb(t,L,R.map(x=>inr(a,'Mujer',...x)),R.map(x=>inr(a,'Hombre',...x)));
+const kv=(t,rows)=>`<table><tr><th colspan=2>${t}</th></tr>${rows.map(([k,v])=>`<tr><td>${k}</td><td class="t">${v}</td></tr>`).join('')}</table>`;
+const gt=(t,nv,n,a)=>{const L=[...Array(n)].map((_,i)=>(i+1)+'°'),c=g=>L.map((_,i)=>a.filter(r=>r.nv==nv&&r.g==g&&r.gr==i+1).length);return tb(t,L,c('Mujer'),c('Hombre'))};
+function hoja(rs,m,y){const fam=DB.familiares,ind=DB.ind,hi=DB.historico,ce=hi.filter(r=>r.res=='Caso de éxito'),dir=rs.length,k=n=>ce.filter(r=>r.nv==n).length,ages=[...Array(20)].map((_,i)=>i+5);
+ const tit=((m?MES[m-1]:'Todos los meses')+(y?' '+y:'')).toUpperCase(),hd=`<div class="hd"><b class="lg">mese</b><h2>ESTADÍSTICAS ${tit}</h2></div>`;
+ const h1=`<div class="pg">${hd}<div class="gd"><div>${rt('Participantes directos',['0 A 5','6 A 12','13 A 18','19 A 25'],[[0,5],[6,12],[13,18],[19,25]],rs)}${rt('Padres y/o tutores',['18 A 29','30 A 59','60 +'],[[18,29],[30,59],[60,200]],fam)}${rt('Participantes indirectos',['0 A 2','3 A 5','6 A 12','13 A 18','19 A 25','26 +'],[[0,2],[3,5],[6,12],[13,18],[19,25],[26,200]],ind)}${kv('Totales',[['Participantes directos',dir],['Participantes indirectos',ind.length+fam.length]])}${kv('Base de datos histórica',[['Base de datos histórica',hi.length],['Casos de éxito',ce.length],['Secundaria',k('Secundaria')],['Oficio',0],['Carrera técnica',0],['Car. téc. c/ bachillerato',0],['Preparatoria',k('Bachillerato')],['Licenciatura',k('Licenciatura')],['No concluyeron',hi.filter(r=>r.res=='No concluyó').length]])}</div>
+ <div>${rt('Rangos tutores',['18-24','25-49','50-64','65 +'],[[18,24],[25,49],[50,64],[65,200]],fam)}${kv('Otros datos',[['Participantes',dir],['Familias',new Set(fam.map(r=>r.hijo)).size],['Colonias',new Set(rs.map(r=>r.col)).size]])}${kv('Documento de terminación',[['F=',ce.filter(r=>r.g=='Mujer').length],['M=',ce.filter(r=>r.g=='Hombre').length]])}${kv('Menores que han pasado por MESE',[[dir+' + '+hi.length,dir+hi.length]])}</div></div></div>`;
+ const h2=`<div class="pg"><div class="gd"><div>${gt('Primaria','Primaria',6,rs)}${gt('Secundaria','Secundaria',3,rs)}${tb('Oficio',['—'],[0],[0])}${gt('Preparatoria','Bachillerato',3,rs)}${gt('Licenciatura','Licenciatura',5,rs)}</div><div>${tb('Participantes directos',ages,ages.map(a=>inr(rs,'Mujer',a,a)),ages.map(a=>inr(rs,'Hombre',a,a)))}</div></div></div>`;
+ $('#hoja').innerHTML=$('#pvb').innerHTML=h1+h2}
+function imp(pdf){const t=document.title;document.body.classList.add('imp');document.title='Estadisticas_MESE';if(pdf)toast('En la ventana que se abre, elija “Guardar como PDF” como destino');try{print()}finally{document.body.classList.remove('imp');document.title=t}}
+const all=()=>Object.keys(P).forEach(upd);
+function route(){cur=location.hash.slice(1)||'inicio';if(cur=='editor'&&!ed)cur='inicio';$$('.pag').forEach(s=>s.hidden=s.id!=cur);$$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.i==(cur=='editor'?ed.p:cur)));scrollTo(0,0)}
+const go=x=>location.hash=x,toast=t=>{const e=$('#ok');e.textContent=t;e.hidden=false;setTimeout(()=>e.hidden=true,2500)};
+function openEd(p,id){const c=P[p],r=id?DB[p].find(x=>x.id==id):{};ed={p,id};
+ $('#et').textContent=(id?'Editar: ':'Agregar: ')+(p=='activos'?'participante':'familiar');
+ $('#eb').innerHTML=c.form.map(([k,l,t])=>`<div><label for="e-${k}">${l}${k=='n'?' *':''}</label>${Array.isArray(t)||t=='m'?`<select id="e-${k}">${opts(t,t=='m'?'m':0,r[k])}</select>`:`<input id="e-${k}" type="${t=='n'?'number':'text'}" value="${h(r[k])}"${k=='n'?' required':''}>`}</div>`).join('');go('editor')}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(d.pv!==undefined)$('#pv').showModal();else if(d.x!==undefined)$('#pv').close();else if(d.pr)imp(d.pr=='pdf');
+ else if(d.add)openEd(d.add);
+ else if(d.a=='edit')openEd(d.p,d.id);
+ else if(d.a=='baja'){ed={p:'activos',id:+d.id};$('#bn').textContent=DB.activos.find(r=>r.id==d.id).n;$('#dl').showModal()}
+ else if(d.a=='react'){const i=DB.bajas.findIndex(r=>r.id==d.id),r=DB.bajas.splice(i,1)[0];DB.activos.push({...r.o});all();toast('Participante reactivado')}
+ else if(d.clr){$$(`#f-${d.clr} [data-k]`).forEach(x=>x.value='');upd(d.clr)}
+ else if(d.v){const p=b.closest('section').id;$$('button',b.parentNode).forEach(x=>x.classList.toggle('on',x==b));$('#l-'+p).hidden=d.v!='l';$('#g-'+p).hidden=d.v!='g';$('#f-'+p).hidden=$('#n-'+p).hidden=d.v=='r';if(p=='activos')$('#r-activos').hidden=d.v!='r'}});
+document.addEventListener('input',e=>{const s=e.target.closest('.fl');if(s)s.id=='f-'+s.id.slice(2)?upd(s.id.slice(2)):repo()});
+$('#ec').onclick=()=>go(ed.p);$('#bc').onclick=()=>$('#dl').close();
+$('#ef').onsubmit=e=>{e.preventDefault();const {p,id}=ed,r=id?DB[p].find(x=>x.id==id):{id:++nid};P[p].form.forEach(([k,,t])=>{const v=$('#e-'+k).value;r[k]=t=='n'||t=='m'?+v:v});if(!id)DB[p].push(r);all();toast(id?'Cambios guardados':'Registro agregado');go(p)};
+$('#bf').onsubmit=e=>{e.preventDefault();const i=DB.activos.findIndex(r=>r.id==ed.id),r=DB.activos.splice(i,1)[0],fb=$('#bd').value;DB.bajas.push({id:++nid,n:r.n,g:r.g,nv:r.nv,gr:r.gr,mot:$('#bm').value,fb,y:+fb.slice(0,4),o:r});$('#dl').close();all();toast('Baja registrada');};
+addEventListener('hashchange',route);all();route();
+</script></body></html>
