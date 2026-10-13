@@ -142,13 +142,13 @@ Se cargaron `10. OCTUBRE.xlsx` (BASE), `8. BDI AGOSTO.xlsx` y la base histórica
 | No concluyeron | 798 | 798 |
 | Menores que han pasado por MESE | 1,407 | 1,407 |
 | Primaria por grado (F y M) | igual | igual |
-| Familias · Colonias | 97 · 36 | 100 · 38 |
+| Familias · Colonias | 97 · 36 | 97 · 38 |
 | Indirectos | 146 | 141 |
-| Tutores con edad | 157 | 146 (30 tutores sin fecha de nacimiento en BDI) |
+| Tutores con edad | 157 | 146 (25 tutores sin fecha de nacimiento en BDI) |
 
 Las diferencias pequeñas tienen explicación:
 - **Una niña de 12 o 13 años:** depende del día exacto en que se calcula la edad.
-- **Familias (100 contra 97):** se agrupan por el nombre de la madre o tutor.
+- **Familias:** ya coinciden (97). Se agrupan por nombre de la madre o tutor, y además por mismo domicilio y apellido, porque 3 hermanos tenían el nombre de la madre escrito distinto.
 - **Tutores e indirectos:** dependen de las edades capturadas en BDI.
 
 De 1,407 registros, solo 29 quedaron para revisión, todos por datos que faltan en el Excel (por ejemplo, 9 registros históricos sin ninguna fecha).
@@ -159,5 +159,5 @@ Probado en MariaDB 11.4. MySQL no se podía instalar en el entorno de trabajo; s
 
 - **Hoja BAJAS de `10. OCTUBRE.xlsx`:** no tiene encabezados y su acomodo de columnas es distinto al de BASE. Falta confirmar qué es cada columna antes de cargarla.
 - **¿Qué significa "SÁBANA FAMILIAS"** (APEGADA…)? Por ahora se guarda como nota de la visita.
-- **¿Cómo cuentan las familias en la hoja de estadísticas?** Así se ajusta la regla para llegar a 97.
+- **Indirectos y tutores:** ¿se cuenta a la mamá una vez por familia o una vez por cada hijo becado? La hoja parece contar por hijo; la base cuenta a cada persona una vez.
 - **Género:** hoy solo admite F y M, como en la estadística. Si se necesita otra opción, es un cambio de una línea.

@@ -356,7 +356,7 @@ END //
 CREATE PROCEDURE sp_carga_base(IN p_fecha_corte DATE)
 BEGIN
   DECLARE v_fin BOOLEAN DEFAULT FALSE;
-  DECLARE v_fila INT UNSIGNED; DECLARE v_nombre, v_madre, v_padre, v_dom, v_col, v_clave_fam VARCHAR(300);
+  DECLARE v_fila INT UNSIGNED; DECLARE v_nombre, v_madre, v_padre, v_dom, v_col, v_clave_fam, v_clave_dom VARCHAR(300);
   DECLARE v_fam, v_per, v_tut, v_vis INT UNSIGNED; DECLARE v_nivel VARCHAR(10); DECLARE v_grado TINYINT;
   DECLARE r_becado, r_nac, r_ing, r_grupobeca, r_beca, r_gen, r_sangre, r_curp, r_esc, r_gradotxt, r_carrera, r_grupo, r_turno,
           r_ocm, r_escm, r_ocp, r_escp, r_civil, r_integr, r_apoyo, r_monto, r_ingreso, r_enf, r_adic, r_viol, r_activ_com, r_activ_fis,
@@ -380,6 +380,16 @@ BEGIN
                                IF(fn_norm(v_padre) IN ('AUSENTE', 'NO TIENE'), NULL, fn_norm(v_padre)),
                                CONCAT(fn_norm(v_dom), '|', fn_norm(v_col)));
     SET v_fam = (SELECT id FROM carga_mapa WHERE hoja = 'BASE' AND rol = 'FAMILIA' AND clave = v_clave_fam LIMIT 1);
+    -- Segunda regla: mismo domicilio y mismo apellido paterno = hermanos, aunque el nombre de la
+    -- madre esté escrito distinto ("Z" por "S", una letra de más...)
+    SET v_clave_dom = CONCAT('DOM|', fn_clave(v_dom), '|', fn_clave(v_col), '|', fn_clave(fn_nombre_parte(v_nombre, 'P')));
+    IF v_fam IS NULL AND fn_norm(v_dom) IS NOT NULL THEN
+      SET v_fam = (SELECT id FROM carga_mapa WHERE hoja = 'BASE' AND rol = 'FAMDOM' AND clave = v_clave_dom LIMIT 1);
+      IF v_fam IS NOT NULL THEN
+        INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema)
+        VALUES ('BASE', v_fila, 'NOMBRE DE LA MADRE O TUTOR', v_madre, 'Mismo domicilio y apellido que otro becado pero la madre está escrita distinto; se unieron como hermanos');
+      END IF;
+    END IF;
     IF v_fam IS NULL THEN
       INSERT INTO familia (calle, colonia_id, telefono, correo, aviso_privacidad)
       VALUES (fn_titulo(v_dom), fn_colonia(fn_titulo(v_col), REGEXP_SUBSTR(r_cp, '[0-9]{5}')),
@@ -387,6 +397,7 @@ BEGIN
               IF(fn_norm(r_aviso) IN ('FIRMADO', 'SI'), p_fecha_corte, NULL));
       SET v_fam = LAST_INSERT_ID();
       INSERT INTO carga_mapa VALUES ('BASE', v_fila, 'FAMILIA', v_fam, v_clave_fam);
+      INSERT INTO carga_mapa VALUES ('BASE', v_fila, 'FAMDOM', v_fam, v_clave_dom);
 
       -- Madre y padre (o tutores)
       IF fn_norm(v_madre) IS NOT NULL AND fn_norm(v_madre) NOT IN ('AUSENTE', 'NO TIENE', 'PENDIENTE') THEN
