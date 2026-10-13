@@ -197,7 +197,7 @@ const VS=[
 {t:'1. Información del participante',f:[
  {t:'bus',l:'¿Ya está registrado en MESE? Búsquelo para llenar sus datos'},
  {k:'ap_p',l:'Apellido paterno',t:'tx',r:1},{k:'ap_m',l:'Apellido materno',t:'tx'},{k:'nom',l:'Nombre(s)',t:'tx',r:1},{k:'edad',l:'Edad',t:'nu'},
- {k:'esc',l:'Escuela',t:'tx'},{k:'grado',l:'Grado',t:'tx'},{k:'grupo',l:'Grupo',t:'tx'},{k:'turno',l:'Turno',t:'ra',o:['Matutino','Vespertino']},
+ {k:'esc',l:'Escuela',t:'tx'},{k:'grado',l:'Grado',t:'tx'},{k:'grupo',l:'Grupo',t:'tx'},{k:'turno',l:'Turno',t:'ra',o:['Matutino','Vespertino','Tiempo completo','Mixto']},
  {k:'beca',l:'Tipo de beca',t:'ck',o:['MESE','BBVA','Especial','No tengo']},
  {k:'sangre',l:'Tipo de sangre',t:'sel',o:['O+','O−','A+','A−','B+','B−','AB+','AB−','No sabe']},
  {h:'Domicilio'},
@@ -214,14 +214,14 @@ const VS=[
 {t:'4. Vivienda',f:[
  {k:'casa',l:'Su casa es',t:'ra',o:['Propia','Rentada','Prestada','Irregular','Compartida']},
  {k:'serv',l:'¿Cuenta con los siguientes servicios o equipamiento?',t:'ck',o:['Agua','Luz','Drenaje','Computadora','Internet']},
- {k:'car',l:'Características de la casa',t:'ck',o:['Obra negra','Terminada','Lámina y madera','Comedor','Cocina','Patio','Cochera'],ot:1},
+ {k:'car',l:'Características de la casa',t:'ck',o:['Obra negra','Terminada','Mixta','Lámina y madera','Comedor','Cocina','Patio','Cochera'],ot:1},
  {k:'rec',l:'Nº de recámaras',t:'nu'},{k:'banos',l:'Nº de baños',t:'nu'},
- {k:'piso',l:'El piso es',t:'ra',o:['Tierra','Cemento','Vitropiso'],ot:1},
- {k:'techo',l:'El techo es',t:'ra',o:['Ladrillo','Concreto','Lámina','Cartón'],ot:1},
+ {k:'piso',l:'El piso es',t:'ck',o:['Tierra','Cemento','Vitropiso','Mosaico'],ot:1},
+ {k:'techo',l:'El techo es',t:'ck',o:['Ladrillo','Concreto','Lámina','Cartón','Madera'],ot:1},
  {k:'comb',l:'Tipo de combustible',t:'ck',o:['Gas','Leña','Carbón'],ot:1},
- {k:'auto',l:'Automóvil',t:'ra',o:['Propio','Prestado','No tiene'],w:1},
+ {k:'auto',l:'Vehículo',t:'ck',o:['Propio','Prestado','Motocicleta','No tiene']},
  {k:'mat',l:'Necesidad de material en el hogar',t:'ta'},
- {k:'docs',l:'Documentos importantes',t:'ck',o:['Completos','Ordenados']},{k:'docs_obs',l:'Observaciones sobre documentos',t:'tx',w:1},
+ {k:'docs',l:'Documentos importantes',t:'ck',o:['Completos','Ordenados','Incompletos','Desordenados']},{k:'docs_obs',l:'Observaciones sobre documentos',t:'tx',w:1},
  {k:'hig',l:'Higiene de la vivienda',t:'ra',o:['Buena','Regular','Deficiente'],w:1}]},
 {t:'5. Servicios públicos',f:[
  {k:'sp',l:'En la zona cuentan con',t:'ck',o:['Escuela','Centro de salud','Pavimento','Alumbrado público','Transporte público']},
@@ -234,7 +234,7 @@ const VS=[
  {k:'huerto',l:'¿Cuentan con huerto familiar?',t:'ra',o:['Sí','No','Me gustaría','No me interesa']},
  {k:'huerto_pq',l:'Si la respuesta es no, ¿por qué?',t:'tx',w:1},{k:'huerto_ben',l:'¿Qué beneficios obtiene del huerto familiar?',t:'tx',w:1}]},
 {t:'8. Salud',f:[
- {k:'med',l:'Cuando requiere asistencia médica, asiste a',t:'ck',o:['IMSS','IMSS Bienestar','MESE','Particular','Ninguno']},
+ {k:'med',l:'Cuando requiere asistencia médica, asiste a',t:'ck',o:['IMSS','IMSS Bienestar','SIMI','MESE','Particular','Ninguno']},
  {k:'cartilla',l:'Cartilla de vacunación actualizada entregada a MESE',t:'ra',o:SN,w:1},
  {h:'Vacunas'},
  {k:'cov_p',l:'COVID-19 · Participante',t:'ra',o:SN},{k:'cov_p_d',l:'Dosis',cl:'COVID-19 participante: dosis',t:'nu'},
@@ -337,7 +337,7 @@ function vrow(k,o={}){const f=VFS.find(x=>x.k==k),box=$(`#vf [data-tb="${k}"] .r
  const r=box.lastElementChild;$$('[data-c]',r).forEach(e=>e.value=o[e.dataset.c]??'');vnum(k);return r}
 const vnum=k=>{const f=VFS.find(x=>x.k==k);$$(`#vf [data-tb="${k}"] .tr`).forEach((r,i)=>$('.trh b',r).textContent=f.rl+' '+(i+1))};
 function vset(d){$('#vf').reset();$$('#vf [data-tb] .rows').forEach(x=>x.innerHTML='');
- $$('#vf [data-f]').forEach(e=>{const v=d[e.dataset.f];if(e.type=='radio')e.checked=v===e.value;else if(e.type=='checkbox')e.checked=Array.isArray(v)&&v.includes(e.value);else e.value=v??''});
+ $$('#vf [data-f]').forEach(e=>{const v=d[e.dataset.f];if(e.type=='radio')e.checked=v===e.value;else if(e.type=='checkbox')e.checked=(Array.isArray(v)?v:v?[v]:[]).includes(e.value);else e.value=v??''});
  $$('#vf [data-tb]').forEach(t=>{const k=t.dataset.tb,rows=d[k]||[];(rows.length?rows:k=='fam'?[{}]:[]).forEach(o=>vrow(k,o))});
  SIG={};$$('#vf [data-sig]').forEach(c=>{SIG[c.dataset.sig]=d[c.dataset.sig]||'';c.width=0});
  $('#v-bus').value='';gpsT();$$('#vf .err').forEach(e=>e.classList.remove('err'));$('#vas').textContent='';vtot()}
