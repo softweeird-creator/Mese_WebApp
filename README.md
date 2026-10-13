@@ -26,12 +26,12 @@ Para usar el panel de **Visitas domiciliarias** sin internet en los celulares, p
 - Borradores y visitas terminadas; búsqueda, filtros (trabajadora social, colonia, estado, vivienda, rango de fechas), edición y eliminación.
 - Gráficas y **reporte por fecha** (este mes, mes pasado, últimos 7 días, año o rango libre) con impresión, PDF y exportación a Excel (CSV).
 - Ficha individual de cada visita imprimible o en PDF.
-- Respaldo: descargar o enviar (WhatsApp, correo) un archivo `.json`; en la oficina, “Importar respaldo” junta las visitas de varios teléfonos sin duplicarlas.
+- Respaldo: descargar o enviar (WhatsApp, correo) una página ordenada con el logo de MESE, un resumen, la lista y la ficha de cada visita; se abre en cualquier teléfono o computadora. En la oficina, “Importar respaldo” con esos archivos junta las visitas de varios teléfonos sin duplicarlas.
 
 ## Archivos
 - `index.html` – la aplicación completa.
-- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v2`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
-- `manifest.webmanifest`, `icon-192.png`, `icon-512.png` – instalación en la pantalla de inicio.
+- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v3`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
+- `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `logo.png` – logo e instalación en la pantalla de inicio. El logo dentro de la página está en la constante `LOGO` de `index.html`.
 
 ## Pendiente
 - Los datos de participantes, familiares, bajas e histórico son de ejemplo y viven solo en la memoria del navegador.
