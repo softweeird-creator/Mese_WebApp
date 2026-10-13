@@ -317,7 +317,7 @@ $('#main').insertAdjacentHTML('beforeend',`
  <div class="gu" style="justify-content:flex-start;margin-bottom:1rem"><button class="btn sec" data-vx="rprint">Imprimir</button><button class="btn" data-vx="rpdf">Descargar PDF</button><button class="btn sec" data-vx="rcsv">Exportar a Excel</button></div><div id="vrb"></div></div>
 <details class="rep"><summary>Respaldo, exportar e importar</summary>
  <p class="sub">Las visitas se guardan en este dispositivo. Descargue o envíe un respaldo con frecuencia: es una página ordenada con todas las visitas que se abre y se lee en cualquier teléfono o computadora. En la oficina, use “Importar respaldo” con esos archivos para juntar las visitas de todos los teléfonos (no se duplican).</p>
- <div class="gu" style="justify-content:flex-start"><button class="btn sec" data-vx="bk">Descargar respaldo</button><button class="btn sec" data-vx="share" id="vshare" hidden>Enviar respaldo (WhatsApp, correo…)</button><button class="btn sec" data-vx="csv">Exportar todo a Excel</button><label class="btn sec" for="vimp" style="display:inline-flex;align-items:center;margin:0">Importar respaldo</label><input id="vimp" type="file" accept=".html,.htm,.json,text/html,application/json" hidden></div></details>
+ <div class="gu" style="justify-content:flex-start"><button class="btn sec" data-vx="bk">Descargar respaldo</button><button class="btn sec" data-vx="share" id="vshare" hidden>Enviar respaldo (WhatsApp, correo…)</button><button class="btn sec" data-vx="csv">Descargar todo en Excel</button><label class="btn sec" for="vimp" style="display:inline-flex;align-items:center;margin:0">Importar respaldo</label><input id="vimp" type="file" accept=".html,.htm,.json,text/html,application/json" hidden></div></details>
 </section>
 <section id="vform" class="pag" hidden><div class="top"><div><h1 id="vft">Nueva visita</h1><p class="sub">Se guarda solo mientras escribe, aun sin internet. Los campos con * son obligatorios para terminar.</p></div><button type="button" class="btn sec" data-vx="salir">Salir</button></div>
 <ol class="stp" id="vstp">${VS.map((s,i)=>`<li><button type="button" data-vst="${i}" title="${s.t}">${s.n||s.t.split('.')[0]}</button></li>`).join('')}</ol>
@@ -459,15 +459,58 @@ function bkFile(){const now=new Date(),fecha=now.toLocaleDateString('es-MX',{dat
 ${L.map((r,i)=>`<section class="visita hj" id="v${i}">${ficha(r).replace(/^<div class="pg">|<\/div>$/g,'')}</section>`).join('')}
 </main><script type="application/json" id="mese-datos">${datos}<\/script></body></html>`;
  return new File([html],`MESE_respaldo_visitas_${hoyISO()}.html`,{type:'text/html'})}
-function vcsv(list,name){if(!list.length)return toast('No hay visitas para exportar');
- const cols=[['ID',r=>r.id],['Estado',r=>r.est],['Creado',r=>r.cr],['Modificado',r=>r.mod],
-  ...VFS.filter(f=>f.k&&!['tb','sig'].includes(f.t)).flatMap(f=>{const g=r=>{const v=r.d[f.k];return f.t=='mes'&&v?MES[v-1]:Array.isArray(v)?v.join('; '):v??''};return f.ot?[[f.cl||f.l,g],[(f.cl||f.l)+' (otro)',r=>r.d[f.k+'_ot']||'']]:[[f.cl||f.l,g]]}),
-  ['Nº de integrantes',r=>(r.d.fam||[]).length],['Integrantes',r=>(r.d.fam||[]).map(o=>[o.n,o.par,o.ed&&o.ed+' años',o.oc,o.ing&&'$'+o.ing].filter(Boolean).join(' / ')).join(' | ')],
-  ['Antecedentes médicos',r=>(r.d.ant||[]).map(o=>[o.n,o.par,o.enf,o.at].filter(Boolean).join(' / ')).join(' | ')],
-  ['Ingreso total',r=>TOT.ingreso(r.d)],['Total apoyos',r=>TOT.apoyos(r.d)],['Egreso total',r=>TOT.egreso(r.d)],['Balance',r=>TOT.balance(r.d)],
-  ['Firma trabajadora social',r=>r.d.f_ts?'Sí':'No'],['Firma madre o tutor',r=>r.d.f_tu?'Sí':'No']];
- const q=v=>{v=String(v??'');return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
- dlf(new Blob(['﻿'+[cols.map(c=>q(c[0])).join(','),...list.map(r=>cols.map(c=>q(c[1](r))).join(','))].join('\r\n')],{type:'text/csv;charset=utf-8'}),name)}
+/* ---------- Excel (.xlsx) hecho en la página, sin librerías: funciona sin internet ---------- */
+const XL=(()=>{
+ const T=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;T[n]=c>>>0}
+ const crc=b=>{let c=~0;for(let i=0;i<b.length;i++)c=T[(c^b[i])&255]^(c>>>8);return(~c)>>>0},te=new TextEncoder();
+ const zip=files=>{const P=[],C=[];let off=0;
+  for(const [n,d] of files){const nm=te.encode(n),da=te.encode(d),c=crc(da),h=new DataView(new ArrayBuffer(30)),k=new DataView(new ArrayBuffer(46));
+   [[0,0x04034b50,4],[4,20,2],[6,0x800,2],[12,0x21,2],[14,c,4],[18,da.length,4],[22,da.length,4],[26,nm.length,2]].forEach(([o,v,s])=>s==4?h.setUint32(o,v,true):h.setUint16(o,v,true));
+   [[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x800,2],[14,0x21,2],[16,c,4],[20,da.length,4],[24,da.length,4],[28,nm.length,2],[42,off,4]].forEach(([o,v,s])=>s==4?k.setUint32(o,v,true):k.setUint16(o,v,true));
+   P.push(h,nm,da);C.push(k,nm);off+=30+nm.length+da.length}
+  const cs=C.reduce((a,x)=>a+x.byteLength,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob([...P,...C,e],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})};
+ const x=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
+ const L=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26}return s};
+ const dia=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||'');return m?(Date.UTC(+m[1],m[2]-1,+m[3])-Date.UTC(1899,11,30))/864e5:null};
+ const hora=s=>{const d=new Date(s);return isNaN(d)?null:(d.getTime()-d.getTimezoneOffset()*6e4)/864e5+25569};
+ const ST={s:0,n:0,d:2,dt:3,$:4},NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',RS='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+ /* hojas: [{nombre, tabla, cols:[[encabezado,tipo,fn]], filas, fijas}] */
+ return (hojas,archivo)=>{const F=[];
+  hojas.forEach((h,i)=>{const n=i+1,seen={};
+   const cols=h.cols.map(([t,ty,fn])=>{let u=String(t).replace(/\s+/g,' ').trim()||'Columna';while(seen[u.toLowerCase()])u+=' (2)';seen[u.toLowerCase()]=1;return{t:u,ty,fn}});
+   const filas=h.filas.length?h.filas:[null],w=cols.map(c=>Math.min(Math.max(c.t.length*.85,c.ty=='d'?8:6),24));
+   const cell=(c,j,r,v)=>{const ref=L(j)+r;if(v==null||v==='')return'';
+    if(c.ty=='d'||c.ty=='dt'){const s=c.ty=='d'?dia(v):hora(v);if(s!=null){w[j]=Math.max(w[j],c.ty=='d'?11:16);return`<c r="${ref}" s="${ST[c.ty]}"><v>${s}</v></c>`}}
+    if(c.ty=='n'||c.ty=='$'){const q=typeof v=='number'?v:+String(v).replace(/[$,\s]/g,'');if(String(v).trim()!==''&&isFinite(q)){w[j]=Math.max(w[j],String(q).length+(c.ty=='$'?5:1));return`<c r="${ref}" s="${ST[c.ty]}"><v>${q}</v></c>`}}
+    const s=Array.isArray(v)?v.join(', '):String(v);w[j]=Math.max(w[j],Math.min(s.length,50));return`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${x(s)}</t></is></c>`};
+   const head=`<row r="1" ht="36" customHeight="1">${cols.map((c,j)=>`<c r="${L(j)}1" t="inlineStr" s="1"><is><t>${x(c.t)}</t></is></c>`).join('')}</row>`;
+   const body=filas.map((r,k)=>`<row r="${k+2}">${r?cols.map((c,j)=>cell(c,j,k+2,c.fn(r))).join(''):''}</row>`).join('');
+   const ref=`A1:${L(cols.length-1)}${filas.length+1}`,fx=h.fijas||0;
+   const pane=fx?`<pane xSplit="${fx}" ySplit="1" topLeftCell="${L(fx)}2" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="${L(fx)}2" sqref="${L(fx)}2"/>`:`<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/>`;
+   F.push([`xl/worksheets/sheet${n}.xml`,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${NS} xmlns:r="${RS}"><sheetViews><sheetView workbookViewId="0"${i?'':' tabSelected="1"'}>${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${w.map((v,j)=>`<col min="${j+1}" max="${j+1}" width="${(Math.ceil(v)+3).toFixed(0)}" customWidth="1"/>`).join('')}</cols><sheetData>${head}${body}</sheetData><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="landscape"/><tableParts count="1"><tablePart r:id="rId1"/></tableParts></worksheet>`]);
+   F.push([`xl/worksheets/_rels/sheet${n}.xml.rels`,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RS}/table" Target="../tables/table${n}.xml"/></Relationships>`]);
+   F.push([`xl/tables/table${n}.xml`,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><table ${NS} id="${n}" name="${h.tabla}" displayName="${h.tabla}" ref="${ref}" totalsRowShown="0"><autoFilter ref="${ref}"/><tableColumns count="${cols.length}">${cols.map((c,j)=>`<tableColumn id="${j+1}" name="${x(c.t)}"/>`).join('')}</tableColumns><tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>`])});
+  const N=hojas.length,R=[...Array(N)].map((_,i)=>i+1);
+  F.push(['[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${R.map(n=>`<Override PartName="/xl/worksheets/sheet${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/tables/table${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>`).join('')}</Types>`]);
+  F.push(['_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RS}/officeDocument" Target="xl/workbook.xml"/></Relationships>`]);
+  F.push(['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${NS} xmlns:r="${RS}"><bookViews><workbookView/></bookViews><sheets>${hojas.map((h,i)=>`<sheet name="${x(h.nombre)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`]);
+  F.push(['xl/_rels/workbook.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${R.map(n=>`<Relationship Id="rId${n}" Type="${RS}/worksheet" Target="worksheets/sheet${n}.xml"/>`).join('')}<Relationship Id="rId${N+1}" Type="${RS}/styles" Target="styles.xml"/></Relationships>`]);
+  F.push(['xl/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ${NS}><numFmts count="3"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="dd/mm/yyyy hh:mm"/><numFmt numFmtId="166" formatCode="&quot;$&quot;#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF263675"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`]);
+  dlf(zip(F),archivo)}})();
+function vxls(list,name){if(!list.length)return toast('No hay visitas para exportar');
+ const tipo=f=>({dt:'d',nu:'n',yr:'n',mo:'$'})[f.t]||'s';
+ const campos=VFS.filter(f=>f.k&&!['tb','sig','bus'].includes(f.t)&&f.k!='fecha').flatMap(f=>{const g=r=>{const v=r.d[f.k];return f.t=='mes'?(v?MES[v-1]:''):v};return f.ot?[[f.cl||f.l,tipo(f),g],[(f.cl||f.l)+' (otro)','s',r=>r.d[f.k+'_ot']]]:[[f.cl||f.l,tipo(f),g]]});
+ const L=[...list].sort((a,b)=>(b.d.fecha||'').localeCompare(a.d.fecha||''));
+ const sub=k=>L.flatMap(r=>(r.d[k]||[]).map(o=>({r,o})));
+ const base=[['Fecha de la visita','d',x=>x.r.d.fecha],['Participante','s',x=>vnm(x.r.d)],['Colonia','s',x=>x.r.d.col]];
+ XL([
+  {nombre:'Visitas',tabla:'Visitas',fijas:2,filas:L,cols:[['Fecha de la visita','d',r=>r.d.fecha],['Participante','s',r=>vnm(r.d)],['Estado','s',r=>r.est],...campos,
+   ['Nº de integrantes','n',r=>(r.d.fam||[]).length],['Ingreso familiar total','$',r=>TOT.ingreso(r.d)],['Total de apoyos','$',r=>TOT.apoyos(r.d)],['Egreso mensual total','$',r=>TOT.egreso(r.d)],['Ingresos + apoyos − egresos','$',r=>TOT.balance(r.d)],
+   ['Firma trabajadora social','s',r=>r.d.f_ts?'Sí':'No'],['Firma madre o tutor','s',r=>r.d.f_tu?'Sí':'No'],['Capturada el','dt',r=>r.cr],['Última modificación','dt',r=>r.mod],['Folio interno','s',r=>r.id]]},
+  {nombre:'Integrantes de la familia',tabla:'Integrantes',fijas:2,filas:sub('fam'),cols:[...base.slice(0,2),['Nombre del integrante','s',x=>x.o.n],['Edad','n',x=>x.o.ed],['Fecha de nacimiento','d',x=>x.o.fn],['Estado civil','s',x=>x.o.ec],['Teléfono','s',x=>x.o.tel],['Parentesco','s',x=>x.o.par],['Escolaridad','s',x=>x.o.esc],['Ocupación','s',x=>x.o.oc],['Ingreso mensual','$',x=>x.o.ing],base[2],['Folio interno','s',x=>x.r.id]]},
+  {nombre:'Antecedentes médicos',tabla:'Antecedentes',fijas:2,filas:sub('ant'),cols:[...base.slice(0,2),['Nombre completo','s',x=>x.o.n],['Parentesco','s',x=>x.o.par],['Enfermedad','s',x=>x.o.enf],['Atención médica','s',x=>x.o.at],base[2],['Folio interno','s',x=>x.r.id]]}
+ ],name)}
 function ask(t,m,ok,fn){const d=$('#cf');$('#cft').textContent=t;$('#cfm').textContent=m;$('#cfo').textContent=ok;d.returnValue='';d.onclose=()=>{if(d.returnValue=='si')fn()};d.showModal()}
 $('#vimp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
  try{const tx=await f.text(),j=/id="mese-datos"/.test(tx)?JSON.parse(new DOMParser().parseFromString(tx,'text/html').getElementById('mese-datos').textContent):JSON.parse(tx),arr=Array.isArray(j)?j:j.visitas;if(!Array.isArray(arr))throw 0;let n=0,u=0;
@@ -500,8 +543,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
   case 'vedit':$('#vv').close();vopen(vview);go('vform');break;
   case 'vprint':case 'vpdf':imp(x=='vpdf',ficha(r),'Visita_'+vnm(r.d).replace(/\s+/g,'_'));break;
   case 'rprint':case 'rpdf':vrep();imp(x=='rpdf',vrHoja(),'Reporte_visitas_MESE');break;
-  case 'rcsv':vrep();vcsv(VR.rs,`MESE_reporte_visitas_${hoyISO()}.csv`);break;
-  case 'csv':vcsv(V,`MESE_visitas_${hoyISO()}.csv`);break;
+  case 'rcsv':vrep();vxls(VR.rs,`MESE_reporte_visitas_${hoyISO()}.xlsx`);break;
+  case 'csv':vxls(V,`MESE_visitas_${hoyISO()}.xlsx`);break;
   case 'bk':{const f=bkFile();dlf(f,f.name)};ls.set('mese_bk',new Date().toISOString());vupd();toast('Respaldo descargado');break;
   case 'share':{const f=bkFile();navigator.share({files:[f],title:'Respaldo de visitas MESE',text:`Respaldo de ${V.length} visitas`}).then(()=>{ls.set('mese_bk',new Date().toISOString());vupd()}).catch(()=>{});break}
   case 'inst':if(vprompt){vprompt.prompt();vprompt=null;$('#vinst').hidden=true}break}}});
