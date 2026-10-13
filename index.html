@@ -1,4 +1,5 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MESE · Sistema de gestión</title>
+<meta name="theme-color" content="#12335f"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--az:#12335f;--az2:#1d4c8f;--vd:#2e7d5b;--vc:#e6f2ec;--ac:#e9eff7;--ln:#cfd8e6;--tx:#1c2432;--gr:#566074;--rj:#9a2f2f}
@@ -9,7 +10,7 @@ h1{font-size:1.9rem;margin:0 0 .2rem;color:var(--az)}h3{margin:0 0 .6rem;color:v
 nav{background:var(--az);color:#fff;position:sticky;top:0;height:100vh;padding:1.4rem 0;display:flex;flex-direction:column;gap:2px}
 .logo{font-size:1.7rem;font-weight:700;padding:0 1.4rem 1.2rem;border-bottom:1px solid #ffffff33;margin-bottom:.8rem}.logo small{display:block;font-size:.8rem;font-weight:400;opacity:.8}
 nav a{padding:.8rem 1.4rem;font-weight:600;color:#fff;text-decoration:none}nav a:hover{background:var(--az2)}nav a.on{background:#fff;color:var(--az);box-shadow:inset 5px 0 0 var(--vd)}
-main{padding:2rem clamp(1rem,3vw,2.5rem) 4rem;max-width:1150px}
+main{padding:2rem clamp(1rem,3vw,2.5rem) 4rem;max-width:1150px;min-width:0}
 .sub{color:var(--gr);margin:0 0 1.2rem}.top{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start}
 .guia{background:var(--ac);border-left:5px solid var(--az2);padding:.7rem 1rem;margin:0 0 1.2rem;color:var(--az)}
 button,.btn{font:600 1.05rem inherit;cursor:pointer}
@@ -33,13 +34,49 @@ fieldset{background:#fff;border:1px solid var(--ln);border-radius:6px;padding:1r
 .gu{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;justify-content:flex-end}.gu p{margin:0 auto 0 0;color:var(--gr)}
 dialog{border:0;border-top:6px solid var(--rj);border-radius:8px;padding:1.5rem;max-width:520px;width:calc(100% - 2rem)}dialog::backdrop{background:#12335fcc}dialog form{display:grid;gap:1rem}dialog h2,dialog p{margin:0}
 #ok{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--vd);color:#fff;padding:.8rem 1.4rem;border-radius:6px;font-weight:600;z-index:20}
-@media(max-width:860px){body{grid-template-columns:1fr}nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:.5rem}.logo{display:none}nav a{padding:.6rem .8rem;font-size:.95rem}}
+@media(max-width:860px){body{grid-template-columns:minmax(0,1fr)}nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:.5rem}.logo{display:none}nav a{padding:.6rem .8rem;font-size:.95rem}}
 #hoja{display:none}#pv{max-width:900px;border-top-color:var(--vd)}#pv .gu{margin-bottom:1rem}
 .hj{-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#12335f}
 .hj .pg{background:#fff;padding:14px;margin-bottom:12px}#pvb .pg{border:1px solid var(--ln)}
 .hj .hd{display:flex;align-items:center;gap:14px;margin-bottom:10px}.hj h2{margin:0;font-size:1.2rem;flex:1;text-align:center}.hj .lg{background:var(--az);color:#fff;padding:2px 10px;font-size:1.3rem;border-radius:4px}
 .hj .gd{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
 .hj table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.8rem;break-inside:avoid}.hj th,.hj td{border:1px solid var(--az2);padding:2px 6px}.hj th{background:var(--ac)}.hj td{color:var(--tx)}.hj td:nth-child(even),.hj .t{text-align:center}.hj .t{font-weight:700}
+/* Búsqueda */
+.bus{grid-column:1/-1}.bus input{padding-left:2.7rem;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23566074' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m20 20-4.6-4.6'/%3E%3C/svg%3E") no-repeat .85rem center/1.25rem}
+.res a{display:flex;justify-content:space-between;gap:1rem;padding:.7rem 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none}.res a:first-of-type{border-top:0}.res a:hover strong{text-decoration:underline}.res span{color:var(--gr);font-size:.95rem;text-align:right}.res h3{margin-top:.8rem}
+.btn:disabled{opacity:.45;cursor:default}
+/* Visitas */
+textarea{width:100%;min-height:96px;padding:.6rem .9rem;border:2px solid #9fb0c9;border-radius:6px;font:inherit;resize:vertical;color:var(--tx)}textarea:focus{border-color:var(--vd)}
+.w{grid-column:1/-1}.lb{display:block;font-weight:600;margin-bottom:.35rem}
+.ops{display:flex;flex-wrap:wrap;gap:.5rem}
+.ops label{display:inline-flex;align-items:center;gap:.5rem;margin:0;border:2px solid #9fb0c9;border-radius:999px;padding:.35rem 1rem;min-height:48px;background:#fff;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.ops label input{width:1.25rem;height:1.25rem;min-height:0;margin:0;padding:0;accent-color:var(--vd);flex:none}
+.ops label:has(:checked){background:var(--vc);border-color:var(--vd);color:#174b36}
+.ops .ot{flex:1 1 200px;width:auto;min-height:48px}
+.sh{grid-column:1/-1;margin:.5rem 0 0;padding-top:.9rem;border-top:1px solid var(--ln)}
+.mo{position:relative}.mo span{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--gr);font-weight:600}.mo input{padding-left:1.9rem}
+.tot{grid-column:1/-1;display:flex;justify-content:space-between;gap:1rem;background:var(--ac);border-left:5px solid var(--vd);padding:.7rem 1rem;font-weight:700;color:var(--az);font-size:1.1rem}
+.tr{border:1px solid var(--ln);border-left:5px solid var(--az2);border-radius:6px;padding:.8rem 1rem;margin-bottom:.8rem;background:#fbfcfe}.trh{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;color:var(--az)}
+.stp{list-style:none;display:flex;gap:.4rem;overflow-x:auto;padding:.2rem .1rem .6rem;margin:0 0 .6rem}
+.stp button{min-width:46px;min-height:46px;border:2px solid var(--ln);border-radius:999px;background:#fff;color:var(--az);font-weight:700;padding:0 .9rem;white-space:nowrap}
+.stp button.ok{border-color:var(--vd);color:var(--vd)}.stp button.on{background:var(--az);border-color:var(--az);color:#fff}
+.vbar{position:sticky;bottom:0;z-index:5;display:flex;gap:.5rem;background:#fff;border:1px solid var(--ln);border-radius:6px;padding:.6rem;box-shadow:0 -4px 14px #12335f1f}.vbar .btn{flex:1 1 0;padding:.4rem .6rem}
+.as{color:var(--gr);font-size:.9rem;margin:.4rem 0 0;text-align:right}
+canvas[data-sig]{width:100%;height:160px;border:2px dashed #9fb0c9;border-radius:6px;background:#fff;touch-action:none;display:block}
+.chip{display:inline-block;padding:.1rem .7rem;border-radius:999px;font-size:.88rem;font-weight:700}.chip.c{background:var(--vc);color:#174b36}.chip.b{background:#fff1cc;color:#6b4c00}
+.aviso{background:#fff6dc;border-left:5px solid #c79100;padding:.7rem 1rem;margin:0 0 1rem;display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.err input,.err select,.err .ops label{border-color:var(--rj)!important}.err>label,.err>.lb{color:var(--rj)}
+#net{position:fixed;top:0;left:0;right:0;z-index:30;background:#6b4c00;color:#fff;padding:.45rem 1rem;font-weight:600;text-align:center;font-size:.95rem}
+details.rep summary{font-weight:700;color:var(--az);cursor:pointer;min-height:44px;display:flex;align-items:center}
+#vv{max-width:960px;border-top-color:var(--vd)}#vv>.gu{margin-bottom:1rem}
+.hj table{min-width:0}.hj .fi td{text-align:left!important}.hj .fi td:first-child{width:40%;font-weight:600;color:var(--az)}.hj .fi .s2{background:#fff;text-align:left}.hj .fic{columns:2;column-gap:14px}.hj .fic table{break-inside:avoid;table-layout:fixed;overflow-wrap:anywhere}#vvb{overflow-x:auto}
+@media(max-width:700px){.hj .fic{columns:1}}
+/* Tablas como tarjetas en el celular */
+@media(max-width:640px){main{padding:1rem 1rem 5rem}h1{font-size:1.5rem}.fl{grid-template-columns:repeat(2,minmax(0,1fr))}input[type=date]{min-width:0}.fl>.btn{grid-column:1/-1}
+ .tw table{min-width:0}.tw table,.tw tbody{display:block}.tw thead{display:none}.tw tr{display:block;border-top:1px solid var(--ln);padding:.6rem .9rem}.tw tr:first-child{border-top:0}
+ .tw td{display:flex;justify-content:space-between;gap:1rem;border:0;padding:.15rem 0;text-align:right}.tw td::before{content:attr(data-l);font-weight:600;color:var(--gr);text-align:left}
+ .tw td:last-child{justify-content:flex-start;flex-wrap:wrap;gap:.4rem;padding-top:.5rem;white-space:normal}.tw td:last-child::before{content:none}.tw td:last-child .mini{margin:0;flex:1 1 auto}
+ .cols{grid-template-columns:1fr}.vbar{margin:0 -.4rem}dialog{padding:1rem}}
 @media print{body.imp{display:block;background:#fff}body.imp>*:not(#hoja){display:none!important}body.imp #hoja{display:block}.hj .pg{break-after:page;padding:0}.hj .pg:last-child{break-after:auto}@page{size:letter;margin:10mm}}
 </style></head><body>
 <nav id="nav" aria-label="Menú"></nav><main id="main"></main>
@@ -48,6 +85,10 @@ dialog{border:0;border-top:6px solid var(--rj);border-radius:8px;padding:1.5rem;
 <div><label for="bd">Fecha de baja</label><input id="bd" type="date" required></div>
 <div class="gu"><button type="button" class="btn sec" id="bc">Cancelar</button><button class="btn ro">Confirmar baja</button></div></form></dialog>
 <dialog id="pv"><div class="gu"><button class="btn sec" data-x>Cerrar</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div id="pvb" class="hj"></div></dialog><div id="hoja" class="hj"></div><div id="ok" hidden></div>
+<dialog id="vv"><div class="gu"><button class="btn sec" data-vx="vclose">Cerrar</button><button class="btn sec" data-vx="vedit">Editar</button><button class="btn sec" data-vx="vprint">Imprimir</button><button class="btn" data-vx="vpdf">Descargar PDF</button></div><div id="vvb" class="hj"></div></dialog>
+<dialog id="cf"><form method="dialog"><h2 id="cft"></h2><p id="cfm"></p><div class="gu"><button value="no" class="btn sec">Cancelar</button><button value="si" class="btn ro" id="cfo">Confirmar</button></div></form></dialog>
+<div id="net" hidden role="status">Sin internet · puede seguir capturando; todo se guarda en este teléfono.</div>
+<datalist id="dl-ts"></datalist><datalist id="dl-col"></datalist><datalist id="dl-part"></datalist><datalist id="dl-par"><option>Madre</option><option>Padre</option><option>Hermano(a)</option><option>Abuelo(a)</option><option>Tío(a)</option><option>Primo(a)</option><option>Hijo(a)</option><option>Participante</option><option>Padrastro / madrastra</option><option>Otro</option></datalist>
 <script>
 const $=(s,e=document)=>e.querySelector(s),$$=(s,e=document)=>[...e.querySelectorAll(s)];
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -67,39 +108,44 @@ familiares:{t:'Familiares',s:'Madres, padres y tutores de los participantes.',ad
  c:[['Nombre',r=>r.n],['Participante',r=>r.hijo],['Ocupación',r=>r.oc],['Teléfono',r=>r.tel]],
  form:[['n','Nombre completo'],['par','Parentesco',['Madre','Padre','Tutor']],['hijo','Participante a su cargo'],['esl','Escolaridad',['Hasta primaria','Secundaria','Preparatoria o más']],['oc','Ocupación',['Empleo','Comercio','Hogar']],['ing','Ingreso mensual',['Menos de $5,000','$5,000 a $8,000','Más de $8,000']],['tel','Teléfono'],['g','Género',GN],['ed','Edad','n']],act:['edit']},
 bajas:{t:'Bajas',s:'Participantes que dejaron de asistir. Sus datos se conservan.',
- f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel',o:NV},{k:'mot',l:'Motivo',o:['Cambio de domicilio','Falta de asistencia','Concluyó','Otro']},{k:'y',l:'Año de baja',t:'n'}],
+ f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel',o:NV},{k:'mot',l:'Motivo',o:['Cambio de domicilio','Falta de asistencia','Concluyó','Otro']},{k:'mb',l:'Mes de baja',t:'m'},{k:'y',l:'Año de baja',t:'n'}],
  c:[['Nombre',r=>r.n],['Fecha de baja',r=>r.fb],['Motivo',r=>r.mot],['Último grado',r=>r.nv+' · '+r.gr+'°']],act:['react']}};
+P.activos.q='Nombre, escuela, colonia, madre o tutora…';P.historico.q='Nombre, nivel o resultado…';P.familiares.q='Nombre, participante, teléfono…';P.bajas.q='Nombre, motivo o fecha…';
 const A=(n,g,ed,nv,gr,y,m,col)=>({n,g,ed,nv,gr,y,m,col,esc:'',mad:'',tel:''});
 const DB={
 activos:[A('Ana Sofía Ramírez Torres','Mujer',10,'Primaria',5,2024,8,'Rosas de Guadalupe'),A('Luis Daniel Pérez Mora','Hombre',14,'Secundaria',2,2024,8,'Rector Díaz Rubio'),A('Camila Herrera Núñez','Mujer',17,'Bachillerato',3,2023,7,'Valle Dorado'),A('Diego Cruz Vega','Hombre',18,'Licenciatura',1,2025,9,'Rosas de Guadalupe'),A('Mateo Salgado Ruiz','Hombre',9,'Primaria',4,2024,8,'Rector Díaz Rubio'),A('Regina Ochoa León','Mujer',13,'Secundaria',1,2025,7,'Valle Dorado'),A('Sofía Barrera Luna','Mujer',11,'Primaria',6,2024,9,'Rosas de Guadalupe'),A('Emilio Cano Ruiz','Hombre',12,'Primaria',6,2024,8,'Valle Dorado')].map((r,i)=>({id:i+1,...r})),
 historico:[['Paola Jiménez Arce','Mujer','Bachillerato',3,2019,'Caso de éxito'],['Erick Barajas Díaz','Hombre','Secundaria',2,2020,'No concluyó'],['Dulce Mendoza Paz','Mujer','Primaria',4,2021,'Sigue activo'],['Iván Orozco Lira','Hombre','Secundaria',3,2019,'Caso de éxito'],['Jimena Solís Cano','Mujer','Licenciatura',2,2020,'Caso de éxito']].map((a,i)=>({id:i+1,n:a[0],g:a[1],nv:a[2],gr:a[3],y:a[4],res:a[5]})),
 familiares:[['Patricia Torres Cervantes','Madre','Ana Sofía','Secundaria','Empleo','$5,000 a $8,000','443 000 0001'],['Javier Pérez Ortiz','Padre','Luis Daniel','Secundaria','Comercio','$5,000 a $8,000','443 000 0002'],['Margarita Núñez Gil','Madre','Camila','Preparatoria o más','Hogar','Menos de $5,000','443 000 0003'],['Rubén Cruz Soto','Padre','Diego','Hasta primaria','Empleo','Más de $8,000','443 000 0004'],['Elena León Vera','Tutor','Regina','Hasta primaria','Hogar','Menos de $5,000','443 000 0005']].map((a,i)=>({id:i+1,n:a[0],par:a[1],hijo:a[2],esl:a[3],oc:a[4],ing:a[5],tel:a[6]})),
-bajas:[['Valeria Medina Soto','Mujer','Primaria',3,'Falta de asistencia','2025-03-12'],['Yohan Arréz Gallegos','Hombre','Primaria',4,'Cambio de domicilio','2024-06-04'],['Brenda Mier Ruiz','Mujer','Bachillerato',3,'Concluyó','2023-07-20']].map((a,i)=>({id:50+i,n:a[0],g:a[1],nv:a[2],gr:a[3],mot:a[4],fb:a[5],y:+a[5].slice(0,4)}))};
+bajas:[['Valeria Medina Soto','Mujer','Primaria',3,'Falta de asistencia','2025-03-12'],['Yohan Arréz Gallegos','Hombre','Primaria',4,'Cambio de domicilio','2024-06-04'],['Brenda Mier Ruiz','Mujer','Bachillerato',3,'Concluyó','2023-07-20']].map((a,i)=>({id:50+i,n:a[0],g:a[1],nv:a[2],gr:a[3],mot:a[4],fb:a[5],mb:+a[5].slice(5,7),y:+a[5].slice(0,4)}))};
 DB.ind=[['Mujer',1],['Hombre',4],['Mujer',7],['Hombre',9],['Mujer',15],['Hombre',22],['Mujer',30]].map(([g,ed])=>({g,ed}));
 DB.familiares.forEach((r,i)=>{r.ed=[38,41,45,52,63][i];r.g=r.par=='Padre'?'Hombre':'Mujer'});
 let nid=100,ed=null,cur='inicio';
 const opts=(o,t,v)=>(t=='m'?MES.map((x,i)=>[i+1,x]):(o||[]).map(x=>[x,x])).map(([a,b])=>`<option value="${a}"${String(v)===String(a)?' selected':''}>${b}</option>`).join('');
-const fld=f=>`<div><label>${f.l}</label>${f.t=='n'?`<input data-k="${f.k}" type="number" placeholder="Ej. 2024">`:`<select data-k="${f.k}"><option value="">Todos</option>${opts(f.o,f.t)}</select>`}</div>`;
-const mm=[['inicio','Inicio'],['activos',P.activos.t],['historico',P.historico.t],['familiares',P.familiares.t],['bajas',P.bajas.t]];
+const nq=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const flat=o=>Object.values(o||{}).map(v=>v&&typeof v=='object'?flat(v):typeof v=='string'&&v.startsWith('data:')?'':v).join(' ');
+const hit=(o,q)=>{q=nq(q);if(!q)return true;const t=nq(flat(o));return q.split(/\s+/).every(w=>t.includes(w))};
+const YR=`type="number" inputmode="numeric" min="1990" max="2100" step="1" placeholder="Ej. ${new Date().getFullYear()}"`;
+const fld=f=>`<div><label>${f.l}</label>${f.t=='n'?`<input data-k="${f.k}" ${YR}>`:`<select data-k="${f.k}"><option value="">Todos</option>${opts(f.o,f.t)}</select>`}</div>`;
+const mm=[['inicio','Inicio'],['activos',P.activos.t],['historico',P.historico.t],['familiares',P.familiares.t],['bajas',P.bajas.t],['visitas','Visitas domiciliarias']];
 $('#nav').innerHTML=mm.map(([i,l])=>`<a href="#${i}" data-i="${i}">${l}</a>`).join('');
-const rep=`<div id="r-activos" class="rep" hidden><h3>Reporte del mes</h3><div class="gu" style="justify-content:flex-start;margin-bottom:1rem"><button class="btn sec" data-pv>Ver hoja de estadísticas</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div class="fl"><div><label for="rm">Mes</label><select id="rm"><option value="">Todos los meses</option>${opts(0,'m')}</select></div><div><label for="ry">Año</label><input id="ry" type="number" placeholder="Ej. 2024"></div></div><div id="rb"></div></div>`;
-$('#main').innerHTML=`<section id="inicio" class="pag"><h1>Bienvenido al sistema de MESE</h1><p class="sub">Elija una opción del menú o toque uno de los cuadros.</p><div class="cards">${Object.keys(P).map(p=>`<a href="#${p}"><b id="k-${p}"></b><strong>${P[p].t}</strong><span>${P[p].s}</span></a>`).join('')}</div></section>`
+const rep=`<div id="r-activos" class="rep" hidden><h3>Reporte del mes</h3><div class="gu" style="justify-content:flex-start;margin-bottom:1rem"><button class="btn sec" data-pv>Ver hoja de estadísticas</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div class="fl"><div><label for="rm">Mes</label><select id="rm"><option value="">Todos los meses</option>${opts(0,'m')}</select></div><div><label for="ry">Año</label><input id="ry" ${YR}></div><div><label for="rg">Género</label><select id="rg"><option value="">Todos</option>${opts(GN)}</select></div><div><label for="rn">Nivel de estudios</label><select id="rn"><option value="">Todos</option>${opts(NV)}</select></div><button type="button" class="btn sec" id="rclr">Quitar filtros</button></div><div id="rb"></div></div>`;
+$('#main').innerHTML=`<section id="inicio" class="pag"><h1>Bienvenido al sistema de MESE</h1><p class="sub">Elija una opción del menú o toque uno de los cuadros.</p><div class="bus" style="margin-bottom:1.2rem"><label for="gq">Buscar en todo el sistema</label><input id="gq" type="search" placeholder="Escriba un nombre, colonia, escuela…" autocomplete="off"></div><div id="gr" class="rep res" hidden style="margin:0 0 1.2rem"></div><div class="cards">${Object.keys(P).map(p=>`<a href="#${p}"><b id="k-${p}"></b><strong>${P[p].t}</strong><span>${P[p].s}</span></a>`).join('')}<a href="#visitas"><b id="k-visitas">0</b><strong>Visitas domiciliarias</strong><span>Cuestionario de seguimiento familiar para llenar en el celular.</span></a></div></section>`
 +Object.keys(P).map(p=>{const c=P[p];return `<section id="${p}" class="pag" hidden><div class="top"><div><h1>${c.t}</h1><p class="sub">${c.s}</p></div>${c.add?`<button class="btn" data-add="${p}">${c.add}</button>`:''}</div>
-<p class="guia">Elija uno o varios filtros a la vez; la lista y las gráficas cambian al instante.</p>
-<div class="fl" id="f-${p}">${c.f.map(fld).join('')}<button class="btn sec" data-clr="${p}">Quitar filtros</button></div>
+<p class="guia">Escriba en el buscador o elija uno o varios filtros; la lista y las gráficas cambian al instante.</p>
+<div class="fl" id="f-${p}"><div class="bus"><label for="q-${p}">Buscar</label><input id="q-${p}" type="search" placeholder="${c.q}" autocomplete="off"></div>${c.f.map(fld).join('')}<button class="btn sec" data-clr="${p}">Quitar filtros</button></div>
 <div class="bar2"><span class="cnt" id="n-${p}"></span><div class="seg" id="v-${p}"><button data-v="l" class="on">Lista</button><button data-v="g">Gráficas</button>${p=='activos'?'<button data-v="r">Reporte del mes</button>':''}</div></div>
 <div class="tw" id="l-${p}"></div><div class="grid" id="g-${p}" hidden></div>${p=='activos'?rep:''}</section>`}).join('')
 +`<section id="editor" class="pag" hidden><h1 id="et"></h1><p class="guia">Revise los datos y toque “Guardar”. Los campos marcados con * son obligatorios.</p><form id="ef"><fieldset><legend>Datos</legend><div class="cols" id="eb"></div></fieldset><div class="gu"><p>Los cambios se verán de inmediato en la lista.</p><button type="button" class="btn sec" id="ec">Cancelar</button><button class="btn">Guardar</button></div></form></section>`;
-const filt=p=>DB[p].filter(r=>P[p].f.every(f=>{const v=$(`#f-${p} [data-k=${f.k}]`).value;return !v||String(r[f.k])==v}));
+const filt=p=>{const q=$('#q-'+p).value;return DB[p].filter(r=>hit(r,q)&&P[p].f.every(f=>{const v=$(`#f-${p} [data-k=${f.k}]`).value;return !v||String(r[f.k])==v}))};
 const bars=(l,rows)=>{const e=Object.entries(rows),mx=Math.max(1,...e.map(x=>x[1]));return `<div class="ch"><h3>${l}</h3>${e.map(([k,v])=>`<div class="b"><span>${h(k)}</span><div><i style="width:${v/mx*100}%"></i></div><b>${v}</b></div>`).join('')}</div>`};
 const cnt=(rs,fn,ord)=>{const m={};rs.forEach(r=>{const k=fn(r);m[k]=(m[k]||0)+1});return Object.fromEntries(Object.entries(m).sort((a,b)=>ord?ord.indexOf(a[0])-ord.indexOf(b[0]):a[0]-b[0]))};
 function upd(p){const c=P[p],rs=filt(p);$('#n-'+p).textContent='Resultados: '+rs.length;
  const ac=(r)=>c.act.map(a=>a=='edit'?`<button class="mini" data-a="edit" data-p="${p}" data-id="${r.id}">Editar</button>`:a=='baja'?`<button class="mini d" data-a="baja" data-id="${r.id}">Dar de baja</button>`:`<button class="mini" data-a="react" data-id="${r.id}">Reactivar</button>`).join('');
- $('#l-'+p).innerHTML=rs.length?`<table><thead><tr>${c.c.map(x=>`<th>${x[0]}`).join('')}<th></th></tr></thead><tbody>${rs.map(r=>`<tr>${c.c.map(x=>`<td>${h(x[1](r))}`).join('')}<td>${ac(r)}</tr>`).join('')}</tbody></table>`:'<p class="vacio">No hay resultados con estos filtros.</p>';
- $('#g-'+p).innerHTML=rs.length?c.f.map(f=>bars('Por '+f.l.toLowerCase(),f.t=='m'?cnt(rs,r=>MES[r.m-1],MES):f.t=='n'?cnt(rs,r=>r[f.k]):cnt(rs,r=>r[f.k],f.o))).join(''):'<p class="vacio">No hay resultados con estos filtros.</p>';
+ $('#l-'+p).innerHTML=rs.length?`<table><thead><tr>${c.c.map(x=>`<th>${x[0]}`).join('')}<th></th></tr></thead><tbody>${rs.map(r=>`<tr>${c.c.map(x=>`<td data-l="${x[0]}">${h(x[1](r))}`).join('')}<td>${ac(r)}</tr>`).join('')}</tbody></table>`:'<p class="vacio">No hay resultados con esta búsqueda o filtros.</p>';
+ $('#g-'+p).innerHTML=rs.length?c.f.map(f=>bars('Por '+f.l.toLowerCase(),f.t=='m'?cnt(rs,r=>MES[r[f.k]-1],MES):f.t=='n'?cnt(rs,r=>r[f.k]):cnt(rs,r=>r[f.k],f.o))).join(''):'<p class="vacio">No hay resultados con estos filtros.</p>';
  $('#k-'+p).textContent=DB[p].length;if(p=='activos')repo()}
-function repo(){const m=$('#rm').value,y=$('#ry').value,rs=DB.activos.filter(r=>(!m||r.m==m)&&(!y||r.y==y)),n=g=>rs.filter(r=>r.g==g).length;hoja(rs,m,y);
- $('#rb').innerHTML=`<p class="sub">${m?MES[m-1]:'Todos los meses'}${y?' de '+y:''}</p><div class="kp"><div><b>${rs.length}</b>Participantes</div><div><b>${n('Mujer')}</b>Mujeres</div><div><b>${n('Hombre')}</b>Hombres</div></div>`+(rs.length?`<div class="grid">${bars('Por nivel de estudios',cnt(rs,r=>r.nv,NV))}${bars('Por rango de edad',cnt(rs,r=>r.ed<=12?'0 a 12':r.ed<=18?'13 a 18':'19 o más',['0 a 12','13 a 18','19 o más']))}${bars('Por género',cnt(rs,r=>r.g,GN))}</div>`:'<p class="vacio">No hay participantes en ese mes.</p>')}
+function repo(){const m=$('#rm').value,y=$('#ry').value,rg=$('#rg').value,rn=$('#rn').value,rs=DB.activos.filter(r=>(!m||r.m==m)&&(!y||r.y==y)&&(!rg||r.g==rg)&&(!rn||r.nv==rn)),n=g=>rs.filter(r=>r.g==g).length;hoja(rs,m,y);
+ $('#rb').innerHTML=`<p class="sub">${m?MES[m-1]:'Todos los meses'}${y?' de '+y:''}${rg?' · '+rg:''}${rn?' · '+rn:''}</p><div class="kp"><div><b>${rs.length}</b>Participantes</div><div><b>${n('Mujer')}</b>Mujeres</div><div><b>${n('Hombre')}</b>Hombres</div></div>`+(rs.length?`<div class="grid">${bars('Por nivel de estudios',cnt(rs,r=>r.nv,NV))}${bars('Por rango de edad',cnt(rs,r=>r.ed<=12?'0 a 12':r.ed<=18?'13 a 18':'19 o más',['0 a 12','13 a 18','19 o más']))}${bars('Por género',cnt(rs,r=>r.g,GN))}</div>`:'<p class="vacio">No hay participantes en ese mes.</p>')}
 const sm=a=>a.reduce((x,y)=>x+y,0),inr=(a,g,lo,hi)=>a.filter(r=>r.g==g&&r.ed>=lo&&r.ed<=hi).length;
 const tb=(t,L,f,m)=>{const F=sm(f),M=sm(m);return `<table><tr><th colspan=4>${t}</th></tr><tr><th colspan=2>Femeninos</th><th colspan=2>Masculinos</th></tr>${L.map((l,i)=>`<tr><td>${l}</td><td>${f[i]}</td><td>${l}</td><td>${m[i]}</td></tr>`).join('')}<tr><td colspan=2 class="t">${F}</td><td colspan=2 class="t">${M}</td></tr><tr><td colspan=2><b>TOTAL</b></td><td colspan=2 class="t">${F+M}</td></tr></table>`};
 const rt=(t,L,R,a)=>tb(t,L,R.map(x=>inr(a,'Mujer',...x)),R.map(x=>inr(a,'Hombre',...x)));
@@ -111,24 +157,347 @@ function hoja(rs,m,y){const fam=DB.familiares,ind=DB.ind,hi=DB.historico,ce=hi.f
  <div>${rt('Rangos tutores',['18-24','25-49','50-64','65 +'],[[18,24],[25,49],[50,64],[65,200]],fam)}${kv('Otros datos',[['Participantes',dir],['Familias',new Set(fam.map(r=>r.hijo)).size],['Colonias',new Set(rs.map(r=>r.col)).size]])}${kv('Documento de terminación',[['F=',ce.filter(r=>r.g=='Mujer').length],['M=',ce.filter(r=>r.g=='Hombre').length]])}${kv('Menores que han pasado por MESE',[[dir+' + '+hi.length,dir+hi.length]])}</div></div></div>`;
  const h2=`<div class="pg"><div class="gd"><div>${gt('Primaria','Primaria',6,rs)}${gt('Secundaria','Secundaria',3,rs)}${tb('Oficio',['—'],[0],[0])}${gt('Preparatoria','Bachillerato',3,rs)}${gt('Licenciatura','Licenciatura',5,rs)}</div><div>${tb('Participantes directos',ages,ages.map(a=>inr(rs,'Mujer',a,a)),ages.map(a=>inr(rs,'Hombre',a,a)))}</div></div></div>`;
  $('#hoja').innerHTML=$('#pvb').innerHTML=h1+h2}
-function imp(pdf){const t=document.title;document.body.classList.add('imp');document.title='Estadisticas_MESE';if(pdf)toast('En la ventana que se abre, elija “Guardar como PDF” como destino');try{print()}finally{document.body.classList.remove('imp');document.title=t}}
+function imp(pdf,html,tt){const t=document.title,hj=$('#hoja'),old=hj.innerHTML;if(html)hj.innerHTML=html;document.body.classList.add('imp');document.title=tt||'Estadisticas_MESE';if(pdf)toast('En la ventana que se abre, elija “Guardar como PDF” como destino');try{print()}finally{document.body.classList.remove('imp');document.title=t;if(html)hj.innerHTML=old}}
 const all=()=>Object.keys(P).forEach(upd);
-function route(){cur=location.hash.slice(1)||'inicio';if(cur=='editor'&&!ed)cur='inicio';$$('.pag').forEach(s=>s.hidden=s.id!=cur);$$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.i==(cur=='editor'?ed.p:cur)));scrollTo(0,0)}
+function route(){const prev=cur;cur=location.hash.slice(1)||'inicio';if(cur=='editor'&&!ed)cur='inicio';
+ if(cur=='vform'&&!vcur){const p=vdraft();if(p)vopen(p.id,p);else cur='visitas'}
+ if(prev=='vform'&&cur!='vform')vexit();
+ $$('.pag').forEach(s=>s.hidden=s.id!=cur);$$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.i==(cur=='editor'?ed.p:cur=='vform'?'visitas':cur)));scrollTo(0,0);if(cur=='vform')requestAnimationFrame(pads)}
 const go=x=>location.hash=x,toast=t=>{const e=$('#ok');e.textContent=t;e.hidden=false;setTimeout(()=>e.hidden=true,2500)};
-function openEd(p,id){const c=P[p],r=id?DB[p].find(x=>x.id==id):{};ed={p,id};
+function openEd(p,id){const c=P[p],hoy=new Date(),r=id?DB[p].find(x=>x.id==id):{y:hoy.getFullYear(),m:hoy.getMonth()+1};ed={p,id};
  $('#et').textContent=(id?'Editar: ':'Agregar: ')+(p=='activos'?'participante':'familiar');
- $('#eb').innerHTML=c.form.map(([k,l,t])=>`<div><label for="e-${k}">${l}${k=='n'?' *':''}</label>${Array.isArray(t)||t=='m'?`<select id="e-${k}">${opts(t,t=='m'?'m':0,r[k])}</select>`:`<input id="e-${k}" type="${t=='n'?'number':'text'}" value="${h(r[k])}"${k=='n'?' required':''}>`}</div>`).join('');go('editor')}
+ $('#eb').innerHTML=c.form.map(([k,l,t])=>`<div><label for="e-${k}">${l}${k=='n'?' *':''}</label>${Array.isArray(t)||t=='m'?`<select id="e-${k}">${opts(t,t=='m'?'m':0,r[k])}</select>`:`<input id="e-${k}" ${k=='y'?YR:`type="${t=='n'?'number':'text'}"`} value="${h(r[k])}"${k=='n'?' required':''}>`}</div>`).join('');go('editor')}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(d.pv!==undefined)$('#pv').showModal();else if(d.x!==undefined)$('#pv').close();else if(d.pr)imp(d.pr=='pdf');
  else if(d.add)openEd(d.add);
  else if(d.a=='edit')openEd(d.p,d.id);
  else if(d.a=='baja'){ed={p:'activos',id:+d.id};$('#bn').textContent=DB.activos.find(r=>r.id==d.id).n;$('#dl').showModal()}
  else if(d.a=='react'){const i=DB.bajas.findIndex(r=>r.id==d.id),r=DB.bajas.splice(i,1)[0];DB.activos.push({...r.o});all();toast('Participante reactivado')}
- else if(d.clr){$$(`#f-${d.clr} [data-k]`).forEach(x=>x.value='');upd(d.clr)}
+ else if(d.clr){$$(`#f-${d.clr} [data-k],#q-${d.clr}`).forEach(x=>x.value='');upd(d.clr)}
  else if(d.v){const p=b.closest('section').id;$$('button',b.parentNode).forEach(x=>x.classList.toggle('on',x==b));$('#l-'+p).hidden=d.v!='l';$('#g-'+p).hidden=d.v!='g';$('#f-'+p).hidden=$('#n-'+p).hidden=d.v=='r';if(p=='activos')$('#r-activos').hidden=d.v!='r'}});
-document.addEventListener('input',e=>{const s=e.target.closest('.fl');if(s)s.id=='f-'+s.id.slice(2)?upd(s.id.slice(2)):repo()});
+document.addEventListener('input',e=>{if(e.target.closest('#visitas,#vform')||e.target.id=='gq')return;const s=e.target.closest('.fl');if(s)s.id=='f-'+s.id.slice(2)?upd(s.id.slice(2)):repo()});
 $('#ec').onclick=()=>go(ed.p);$('#bc').onclick=()=>$('#dl').close();
 $('#ef').onsubmit=e=>{e.preventDefault();const {p,id}=ed,r=id?DB[p].find(x=>x.id==id):{id:++nid};P[p].form.forEach(([k,,t])=>{const v=$('#e-'+k).value;r[k]=t=='n'||t=='m'?+v:v});if(!id)DB[p].push(r);all();toast(id?'Cambios guardados':'Registro agregado');go(p)};
-$('#bf').onsubmit=e=>{e.preventDefault();const i=DB.activos.findIndex(r=>r.id==ed.id),r=DB.activos.splice(i,1)[0],fb=$('#bd').value;DB.bajas.push({id:++nid,n:r.n,g:r.g,nv:r.nv,gr:r.gr,mot:$('#bm').value,fb,y:+fb.slice(0,4),o:r});$('#dl').close();all();toast('Baja registrada');};
-addEventListener('hashchange',route);all();route();
+$('#bf').onsubmit=e=>{e.preventDefault();const i=DB.activos.findIndex(r=>r.id==ed.id),r=DB.activos.splice(i,1)[0],fb=$('#bd').value;DB.bajas.push({id:++nid,n:r.n,g:r.g,nv:r.nv,gr:r.gr,mot:$('#bm').value,fb,mb:+fb.slice(5,7),y:+fb.slice(0,4),o:r});$('#dl').close();all();toast('Baja registrada');};
+/* ================= VISITAS DOMICILIARIAS (Seguimiento familiar) ================= */
+const SN=['Sí','No'],ADI=['Alcoholismo','Tabaquismo','Drogadicción','Ninguno'],QV=['Madre','Padre','Ambos','Hijos','Ninguno'];
+const AP=[['ap_bj','Becas Benito Juárez / Rita Cetina','Becas B. Juárez / R. Cetina'],['ap_am','Programa para el Bienestar de las Personas Adultas Mayores','Adultos mayores'],['ap_dis','Pensión para el Bienestar de las Personas con Discapacidad','Discapacidad'],['ap_lic','Liconsa','Liconsa'],['ap_ot','Monto del otro apoyo','Otro apoyo']];
+const EG=[['eg_renta','Renta'],['eg_alim','Alimentación'],['eg_serv','Servicios (agua, luz, gas)'],['eg_trans','Transporte'],['eg_edu','Educación'],['eg_vest','Vestido y calzado'],['eg_int','Internet'],['eg_tel','Teléfono / celular'],['eg_med','Atención médica'],['eg_ot','Otros']];
+/* Tipos: tx texto, nu número, yr año, tel, dt fecha, mes, sel, mo dinero, ra opción única, ck varias, ta texto largo, tb tabla, sig firma, gps, bus buscador */
+const VS=[
+{t:'Datos de la visita',n:'Visita',f:[
+ {k:'ts',l:'Trabajadora social',t:'tx',r:1,dl:'dl-ts'},{k:'fecha',l:'Fecha de la visita',t:'dt',r:1},
+ {k:'nseg',l:'No. de seguimiento',t:'tx'},{k:'cuad',l:'Cuadrante',t:'tx'},
+ {k:'ing_m',l:'Mes de ingreso a MESE',t:'mes'},{k:'ing_y',l:'Año de ingreso a MESE',t:'yr'}]},
+{t:'1. Información del participante',f:[
+ {t:'bus',l:'¿Ya está registrado en MESE? Búsquelo para llenar sus datos'},
+ {k:'ap_p',l:'Apellido paterno',t:'tx',r:1},{k:'ap_m',l:'Apellido materno',t:'tx'},{k:'nom',l:'Nombre(s)',t:'tx',r:1},{k:'edad',l:'Edad',t:'nu'},
+ {k:'esc',l:'Escuela',t:'tx'},{k:'grado',l:'Grado',t:'tx'},{k:'grupo',l:'Grupo',t:'tx'},{k:'turno',l:'Turno',t:'ra',o:['Matutino','Vespertino']},
+ {k:'beca',l:'Tipo de beca',t:'ck',o:['MESE','BBVA','Especial','No tengo']},
+ {k:'sangre',l:'Tipo de sangre',t:'sel',o:['O+','O−','A+','A−','B+','B−','AB+','AB−','No sabe']},
+ {h:'Domicilio'},
+ {k:'calle',l:'Calle',t:'tx'},{k:'next',l:'Nº exterior',t:'tx'},{k:'col',l:'Colonia',t:'tx',dl:'dl-col'},{k:'cp',l:'C.P.',t:'tx',im:'numeric'},
+ {k:'mun',l:'Municipio',t:'tx'},{k:'tel_t',l:'Teléfono del tutor',t:'tel'},
+ {k:'ref',l:'Referencias',t:'tx',w:1},{k:'entre',l:'Entre calles',t:'tx',w:1},
+ {k:'gps',l:'Ubicación GPS del domicilio (opcional)',t:'gps'}]},
+{t:'2. Integrantes de la familia e ingresos económicos',n:'2',d:'Agregue a cada persona que vive en la casa, incluido el participante.',f:[
+ {k:'fam',t:'tb',add:'Agregar integrante',rl:'Integrante',c:[{k:'n',l:'Nombre',t:'tx'},{k:'ed',l:'Edad',t:'nu'},{k:'fn',l:'Fecha de nacimiento',t:'dt'},{k:'ec',l:'Estado civil',t:'sel',o:['Soltero(a)','Casado(a)','Unión libre','Separado(a)','Divorciado(a)','Viudo(a)']},{k:'tel',l:'Teléfono',t:'tel'},{k:'par',l:'Parentesco',t:'tx',dl:'dl-par'},{k:'esc',l:'Escolaridad',t:'sel',o:['Sin estudios','Primaria','Secundaria','Bachillerato','Carrera técnica','Licenciatura','Posgrado']},{k:'oc',l:'Ocupación',t:'tx'},{k:'ing',l:'Ingreso mensual',t:'mo'}]},
+ {tot:'ingreso',l:'Ingreso total mensual'}]},
+{t:'3. Apoyos gubernamentales',d:'Escriba el monto mensual de cada apoyo que recibe la familia. Deje en blanco los que no recibe.',f:[
+ ...AP.slice(0,4).map(([k,l])=>({k,l,t:'mo',w:1})),{k:'ap_ot_n',l:'Otro apoyo (especifique)',t:'tx'},{k:'ap_ot',l:'Monto del otro apoyo',t:'mo'},
+ {tot:'apoyos',l:'Total de apoyos'}]},
+{t:'4. Vivienda',f:[
+ {k:'casa',l:'Su casa es',t:'ra',o:['Propia','Rentada','Prestada','Irregular','Compartida']},
+ {k:'serv',l:'¿Cuenta con los siguientes servicios o equipamiento?',t:'ck',o:['Agua','Luz','Drenaje','Computadora','Internet']},
+ {k:'car',l:'Características de la casa',t:'ck',o:['Obra negra','Terminada','Lámina y madera','Comedor','Cocina','Patio','Cochera'],ot:1},
+ {k:'rec',l:'Nº de recámaras',t:'nu'},{k:'banos',l:'Nº de baños',t:'nu'},
+ {k:'piso',l:'El piso es',t:'ra',o:['Tierra','Cemento','Vitropiso'],ot:1},
+ {k:'techo',l:'El techo es',t:'ra',o:['Ladrillo','Concreto','Lámina','Cartón'],ot:1},
+ {k:'comb',l:'Tipo de combustible',t:'ck',o:['Gas','Leña','Carbón'],ot:1},
+ {k:'auto',l:'Automóvil',t:'ra',o:['Propio','Prestado','No tiene'],w:1},
+ {k:'mat',l:'Necesidad de material en el hogar',t:'ta'},
+ {k:'docs',l:'Documentos importantes',t:'ck',o:['Completos','Ordenados']},{k:'docs_obs',l:'Observaciones sobre documentos',t:'tx',w:1},
+ {k:'hig',l:'Higiene de la vivienda',t:'ra',o:['Buena','Regular','Deficiente'],w:1}]},
+{t:'5. Servicios públicos',f:[
+ {k:'sp',l:'En la zona cuentan con',t:'ck',o:['Escuela','Centro de salud','Pavimento','Alumbrado público','Transporte público']},
+ {k:'com',l:'¿Participan en actividades comunitarias?',t:'ra',o:SN},{k:'com_c',l:'¿Cuáles?',t:'tx'}]},
+{t:'6. Hábitos alimenticios y estilo de vida',f:[
+ {k:'alim',l:'¿Cómo evalúa los hábitos alimenticios de su familia?',t:'ra',o:['Excelente','Bueno','Regular','Deficiente']},
+ {k:'comidas',l:'¿Cuántas comidas realizan al día?',t:'ra',o:['Cinco o más','Cuatro','Tres','Dos o menos']},
+ {k:'fis',l:'¿Algún miembro de la familia practica actividad física?',t:'ra',o:SN},{k:'fis_c',l:'¿Cuál actividad?',t:'tx'}]},
+{t:'7. Huertos familiares',f:[
+ {k:'huerto',l:'¿Cuentan con huerto familiar?',t:'ra',o:['Sí','No','Me gustaría','No me interesa']},
+ {k:'huerto_pq',l:'Si la respuesta es no, ¿por qué?',t:'tx',w:1},{k:'huerto_ben',l:'¿Qué beneficios obtiene del huerto familiar?',t:'tx',w:1}]},
+{t:'8. Salud',f:[
+ {k:'med',l:'Cuando requiere asistencia médica, asiste a',t:'ck',o:['IMSS','IMSS Bienestar','MESE','Particular','Ninguno']},
+ {k:'cartilla',l:'Cartilla de vacunación actualizada entregada a MESE',t:'ra',o:SN,w:1},
+ {h:'Vacunas'},
+ {k:'cov_p',l:'COVID-19 · Participante',t:'ra',o:SN},{k:'cov_p_d',l:'Dosis',cl:'COVID-19 participante: dosis',t:'nu'},
+ {k:'cov_t',l:'COVID-19 · Tutor',t:'ra',o:SN},{k:'cov_t_d',l:'Dosis',cl:'COVID-19 tutor: dosis',t:'nu'},
+ {k:'sar_p',l:'Sarampión · Participante',t:'ra',o:SN},{k:'sar_p_d',l:'Dosis',cl:'Sarampión participante: dosis',t:'nu'},
+ {k:'sar_t',l:'Sarampión · Tutor',t:'ra',o:SN},{k:'sar_t_d',l:'Dosis',cl:'Sarampión tutor: dosis',t:'nu'},
+ {h:'Métodos anticonceptivos'},
+ {k:'anti',l:'¿Utiliza algún método anticonceptivo?',t:'ra',o:SN},{k:'anti_pl',l:'¿Planea utilizarlo?',t:'ra',o:SN},
+ {k:'anti_m',l:'Método',cl:'Método anticonceptivo',t:'ck',o:['DIU','Inyecciones','Preservativo','Coito interrumpido','Vasectomía','Implante','Parches','Anillo vaginal','Salpingoclasia','Pastillas anticonceptivas']},
+ {h:'Adicciones'},
+ {k:'adi_p',l:'Participante',cl:'Adicciones: participante',t:'ck',o:ADI},{k:'adi_t',l:'Tutor',cl:'Adicciones: tutor',t:'ck',o:ADI},
+ {k:'adi_o_n',l:'Otro familiar (¿quién?)',t:'tx',w:1},{k:'adi_o',l:'Otro familiar',cl:'Adicciones: otro familiar',t:'ck',o:ADI},
+ {h:'Antecedentes médicos familiares'},
+ {k:'ant',t:'tb',add:'Agregar antecedente',rl:'Antecedente',c:[{k:'n',l:'Nombre completo',t:'tx'},{k:'at',l:'Atención médica',t:'tx'},{k:'enf',l:'Enfermedad',t:'tx'},{k:'par',l:'Parentesco',t:'tx',dl:'dl-par'}]}]},
+{t:'9. Dinámica y comunicación familiar asertiva',d:'Marque quién está involucrado en cada tipo de violencia.',f:[
+ {k:'v_fis',l:'Física',cl:'Violencia física',t:'ck',o:QV},{k:'v_psi',l:'Psicológica',cl:'Violencia psicológica',t:'ck',o:QV},
+ {k:'v_ver',l:'Verbal',cl:'Violencia verbal',t:'ck',o:QV},{k:'v_eco',l:'Económica',cl:'Violencia económica',t:'ck',o:QV},
+ {k:'bull',l:'Bullying',t:'ra',o:SN,w:1},
+ {k:'riesgo',l:'Factores de riesgo',t:'ck',o:['Violencia','Adicciones','Pandillas']},
+ {k:'prot',l:'Factores protectores',t:'ck',o:['MESE','Alianzas']}]},
+{t:'10. Economía familiar',f:[
+ {k:'deu',l:'¿Tiene deudas?',t:'ra',o:SN},{k:'deu_c',l:'¿Con quién y de cuánto?',t:'tx'},
+ {k:'prod',l:'¿Realiza alguna actividad productiva?',t:'tx',w:1},
+ {k:'mej',l:'En los últimos 5 años, ¿han mejorado sus condiciones de vida?',t:'ta'},
+ {k:'hac',l:'Hacinamiento observado',t:'ta'},
+ {h:'Egreso mensual'},
+ ...EG.map(([k,l])=>({k,l,cl:'Egreso: '+l,t:'mo'})),
+ {tot:'egreso',l:'Egreso total mensual'},{tot:'balance',l:'Ingresos + apoyos − egresos'}]},
+{t:'Diagnóstico social y firmas',n:'Firmas',f:[
+ {k:'verif',l:'Se verificó la información anterior con visita en',t:'ra',o:['Visita domiciliaria','Oficina']},
+ {k:'diag',l:'Diagnóstico social',t:'ta',rows:6},
+ {k:'f_ts_n',l:'Nombre de la trabajadora social',t:'tx',w:1},{k:'f_ts',l:'Firma de la trabajadora social',t:'sig'},
+ {k:'f_tu_n',l:'Nombre de la madre o tutor',t:'tx',w:1},{k:'f_tu',l:'Firma de la madre o tutor',t:'sig'}]}];
+const VFS=VS.flatMap((s,i)=>s.f.map(f=>({...f,s:i}))),REQ=VFS.filter(f=>f.r);
+const num=v=>+v||0,money=n=>'$'+(+n||0).toLocaleString('es-MX',{maximumFractionDigits:2});
+const TOT={ingreso:d=>sm((d.fam||[]).map(r=>num(r.ing))),apoyos:d=>sm(AP.map(([k])=>num(d[k]))),egreso:d=>sm(EG.map(([k])=>num(d[k]))),balance:d=>TOT.ingreso(d)+TOT.apoyos(d)-TOT.egreso(d)};
+const vnm=d=>[d.nom,d.ap_p,d.ap_m].filter(Boolean).join(' ')||'(sin nombre)';
+const fd=s=>s?String(s).split('-').reverse().join('/'):'—';
+const hoyISO=()=>new Date().toLocaleDateString('en-CA');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v);return true}catch(e){return false}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const wide=f=>f.w||['ck','ta','sig','gps'].includes(f.t)||(f.t=='ra'&&f.o.length>3);
+
+/* ---------- Almacenamiento: IndexedDB (mucho espacio) con respaldo en localStorage ---------- */
+const idb=(()=>{let p;const db=()=>p||(p=new Promise((ok,ko)=>{const r=indexedDB.open('mese',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)}));
+ const tx=(m,f)=>db().then(d=>new Promise((ok,ko)=>{const t=d.transaction('kv',m),r=f(t.objectStore('kv'));t.oncomplete=()=>ok(r.result);t.onerror=()=>ko(t.error)}));
+ return{get:k=>tx('readonly',s=>s.get(k)),set:(k,v)=>tx('readwrite',s=>s.put(v,k))}})();
+const VDK='mese_captura_v1';
+let V=[],vcur=null,vstep=0,vdirty=false,VR=null,SIG={},vview=null,vprompt=null;
+async function vload(){try{V=(await idb.get('visitas'))||JSON.parse(ls.get('mese_visitas')||'[]')}catch(e){try{V=JSON.parse(ls.get('mese_visitas')||'[]')}catch(e2){V=[]}}vupd();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}
+function vstore(){return idb.set('visitas',V).catch(()=>{if(!ls.set('mese_visitas',JSON.stringify(V)))toast('No hay espacio para guardar en este teléfono. Descargue un respaldo.')})}
+const vdraft=()=>{try{return JSON.parse(ls.get(VDK))}catch(e){return null}};
+
+/* ---------- Construcción del formulario ---------- */
+const ctl=(f,c)=>{const a=c?`data-c="${f.k}" aria-label="${f.l}"`:`id="v-${f.k}" data-f="${f.k}"`;
+ switch(f.t){
+ case 'ta':return `<textarea ${a} rows="${f.rows||3}"></textarea>`;
+ case 'sel':return `<select ${a}><option value="">—</option>${f.o.map(x=>`<option>${x}</option>`).join('')}</select>`;
+ case 'mes':return `<select ${a}><option value="">—</option>${MES.map((x,i)=>`<option value="${i+1}">${x}</option>`).join('')}</select>`;
+ case 'mo':return `<div class="mo"><span>$</span><input ${a} type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div>`;
+ case 'ra':case 'ck':return `<div class="ops" role="group" aria-label="${f.l}">${f.o.map(x=>`<label><input type="${f.t=='ra'?'radio':'checkbox'}" name="${f.k}" value="${x}" data-f="${f.k}">${x}</label>`).join('')}${f.ot?`<input class="ot" data-f="${f.k}_ot" placeholder="Otro, ¿cuál?" aria-label="${f.l}: otro">`:''}</div>`;
+ case 'sig':return `<canvas data-sig="${f.k}" aria-label="${f.l}: firme con el dedo"></canvas><div class="gu" style="justify-content:space-between;margin-top:.4rem"><p style="margin:0;font-size:.9rem">Firme con el dedo dentro del recuadro</p><button type="button" class="mini d" data-vsc="${f.k}">Borrar firma</button></div>`;
+ case 'gps':return `<input type="hidden" ${a}><div class="gu" style="justify-content:flex-start"><button type="button" class="btn sec" data-vgps>Guardar ubicación actual</button><span id="gps-t"></span></div>`;
+ default:return `<input ${a} ${f.t=='yr'?YR:`type="${{tx:'text',tel:'tel',nu:'number',dt:'date'}[f.t]}"`}${f.t=='nu'?' inputmode="numeric" min="0"':''}${f.t=='tel'?' inputmode="tel"':''}${f.dl?` list="${f.dl}"`:''}${f.im?` inputmode="${f.im}"`:''} autocomplete="off">`}};
+const fw=f=>f.h?`<h3 class="sh">${f.h}</h3>`
+ :f.tot?`<div class="tot"><span>${f.l}</span><span data-tot="${f.tot}">$0</span></div>`
+ :f.t=='tb'?`<div class="w" data-tb="${f.k}"><div class="rows"></div><button type="button" class="btn sec" data-vadd="${f.k}">+ ${f.add}</button></div>`
+ :f.t=='bus'?`<div class="w bus"><label for="v-bus">${f.l}</label><input id="v-bus" type="search" list="dl-part" placeholder="Escriba el nombre del participante" autocomplete="off"></div>`
+ :`<div class="${wide(f)?'w':''}" data-w="${f.k}">${['ra','ck','sig','gps'].includes(f.t)?`<span class="lb">${f.l}${f.r?' *':''}</span>`:`<label for="v-${f.k}">${f.l}${f.r?' *':''}</label>`}${ctl(f)}</div>`;
+const VFL=[{k:'ts',l:'Trabajadora social'},{k:'col',l:'Colonia'},{k:'est',l:'Estado',o:['Completa','Borrador']},{k:'casa',l:'Su casa es',o:['Propia','Rentada','Prestada','Irregular','Compartida']}];
+$('#main').insertAdjacentHTML('beforeend',`
+<section id="visitas" class="pag" hidden><div class="top"><div><h1>Visitas domiciliarias</h1><p class="sub">Cuestionario de seguimiento familiar para llenar en el celular, casa por casa.</p></div><div class="gu"><button class="btn sec" data-vx="inst" id="vinst" hidden>Instalar en el teléfono</button><button class="btn" data-vx="new">Nueva visita</button></div></div>
+<div id="vpend"></div><div id="vinfo"></div>
+<div class="fl" id="vfl"><div class="bus"><label for="vq">Buscar</label><input id="vq" type="search" placeholder="Nombre, colonia, calle, escuela, trabajadora social…" autocomplete="off"></div>${VFL.map(f=>`<div><label for="vf-${f.k}">${f.l}</label><select id="vf-${f.k}"><option value="">Todos</option>${(f.o||[]).map(x=>`<option>${x}</option>`).join('')}</select></div>`).join('')}<div><label for="vd1">Visitas desde</label><input id="vd1" type="date"></div><div><label for="vd2">Visitas hasta</label><input id="vd2" type="date"></div><button type="button" class="btn sec" data-vx="clr">Quitar filtros</button></div>
+<div class="bar2"><span class="cnt" id="vn"></span><div class="seg"><button data-vv="l" class="on">Lista</button><button data-vv="g">Gráficas</button><button data-vv="r">Reporte por fecha</button></div></div>
+<div class="tw" id="vl"></div><div class="grid" id="vg" hidden></div>
+<div id="vr" class="rep" hidden><h3>Reporte de visitas por fecha</h3>
+ <div class="gu" style="justify-content:flex-start;margin-bottom:.8rem">${[['mes','Este mes'],['ant','Mes pasado'],['sem','Últimos 7 días'],['anio','Este año'],['todo','Todas las fechas']].map(([k,l])=>`<button type="button" class="mini" data-vrq="${k}">${l}</button>`).join('')}</div>
+ <div class="fl" id="vrf"><div><label for="vr1">Desde</label><input id="vr1" type="date"></div><div><label for="vr2">Hasta</label><input id="vr2" type="date"></div><div><label for="vrt">Trabajadora social</label><select id="vrt"></select></div><div><label for="vrc">Colonia</label><select id="vrc"></select></div></div>
+ <div class="gu" style="justify-content:flex-start;margin-bottom:1rem"><button class="btn sec" data-vx="rprint">Imprimir</button><button class="btn" data-vx="rpdf">Descargar PDF</button><button class="btn sec" data-vx="rcsv">Exportar a Excel</button></div><div id="vrb"></div></div>
+<details class="rep"><summary>Respaldo, exportar e importar</summary>
+ <p class="sub">Las visitas se guardan en este dispositivo. Descargue o envíe un respaldo con frecuencia. En la oficina, use “Importar respaldo” para juntar las visitas de todos los teléfonos en una sola computadora (no se duplican).</p>
+ <div class="gu" style="justify-content:flex-start"><button class="btn sec" data-vx="bk">Descargar respaldo</button><button class="btn sec" data-vx="share" id="vshare" hidden>Enviar respaldo (WhatsApp, correo…)</button><button class="btn sec" data-vx="csv">Exportar todo a Excel</button><label class="btn sec" for="vimp" style="display:inline-flex;align-items:center;margin:0">Importar respaldo</label><input id="vimp" type="file" accept=".json,application/json" hidden></div></details>
+</section>
+<section id="vform" class="pag" hidden><div class="top"><div><h1 id="vft">Nueva visita</h1><p class="sub">Se guarda solo mientras escribe, aun sin internet. Los campos con * son obligatorios para terminar.</p></div><button type="button" class="btn sec" data-vx="salir">Salir</button></div>
+<ol class="stp" id="vstp">${VS.map((s,i)=>`<li><button type="button" data-vst="${i}" title="${s.t}">${s.n||s.t.split('.')[0]}</button></li>`).join('')}</ol>
+<form id="vf" novalidate>${VS.map((s,i)=>`<fieldset class="vs" data-s="${i}" hidden><legend>${s.t}</legend>${s.d?`<p class="guia">${s.d}</p>`:''}<div class="cols">${s.f.map(fw).join('')}</div></fieldset>`).join('')}
+<div class="vbar"><button type="button" class="btn sec" data-vx="prev">Anterior</button><button type="button" class="btn sec" data-vx="draft" id="vbd">Guardar borrador</button><button type="button" class="btn" data-vx="next" id="vbn">Siguiente</button></div><p class="as" id="vas"></p></form></section>`);
+
+/* ---------- Leer / llenar el formulario ---------- */
+function vget(){const d={};
+ $$('#vf [data-f]').forEach(e=>{const k=e.dataset.f;
+  if(e.type=='radio'){if(e.checked)d[k]=e.value;else if(!(k in d))d[k]=''}
+  else if(e.type=='checkbox'){if(!Array.isArray(d[k]))d[k]=[];if(e.checked)d[k].push(e.value)}
+  else d[k]=e.value.trim?e.value.trim():e.value});
+ $$('#vf [data-tb]').forEach(t=>d[t.dataset.tb]=$$('.tr',t).map(r=>Object.fromEntries($$('[data-c]',r).map(e=>[e.dataset.c,e.value.trim()]))).filter(o=>Object.values(o).some(Boolean)));
+ return Object.assign(d,SIG)}
+function vrow(k,o={}){const f=VFS.find(x=>x.k==k),box=$(`#vf [data-tb="${k}"] .rows`);
+ box.insertAdjacentHTML('beforeend',`<div class="tr"><div class="trh"><b></b><button type="button" class="mini d" data-vdel>Quitar</button></div><div class="cols">${f.c.map(c=>`<div><label>${c.l}</label>${ctl(c,1)}</div>`).join('')}</div></div>`);
+ const r=box.lastElementChild;$$('[data-c]',r).forEach(e=>e.value=o[e.dataset.c]??'');vnum(k);return r}
+const vnum=k=>{const f=VFS.find(x=>x.k==k);$$(`#vf [data-tb="${k}"] .tr`).forEach((r,i)=>$('.trh b',r).textContent=f.rl+' '+(i+1))};
+function vset(d){$('#vf').reset();$$('#vf [data-tb] .rows').forEach(x=>x.innerHTML='');
+ $$('#vf [data-f]').forEach(e=>{const v=d[e.dataset.f];if(e.type=='radio')e.checked=v===e.value;else if(e.type=='checkbox')e.checked=Array.isArray(v)&&v.includes(e.value);else e.value=v??''});
+ $$('#vf [data-tb]').forEach(t=>{const k=t.dataset.tb,rows=d[k]||[];(rows.length?rows:k=='fam'?[{}]:[]).forEach(o=>vrow(k,o))});
+ SIG={};$$('#vf [data-sig]').forEach(c=>{SIG[c.dataset.sig]=d[c.dataset.sig]||'';c.width=0});
+ $('#v-bus').value='';gpsT();$$('#vf .err').forEach(e=>e.classList.remove('err'));$('#vas').textContent='';vtot()}
+const vtot=()=>{const d=vget();$$('#vf [data-tot]').forEach(e=>{const v=TOT[e.dataset.tot](d);e.textContent=money(v);e.style.color=v<0?'var(--rj)':''})};
+function vdef(){const ts=ls.get('mese_ts')||'',ns=V.map(r=>parseInt(r.d.nseg)).filter(n=>n>0);
+ return{fecha:hoyISO(),mun:'Morelia',ts,f_ts_n:ts,verif:'Visita domiciliaria',nseg:ns.length?String(Math.max(...ns)+1):''}}
+function vopen(id,dr){const r=id&&V.find(x=>x.id==id);vcur={id:r?id:null,dr:!!dr};vdirty=false;
+ vset(dr?dr.d:r?r.d:vdef());
+ $('#vft').textContent=(r?'Editar visita: '+vnm(r.d):dr&&dr.d&&(dr.d.nom||dr.d.ap_p)?'Visita: '+vnm(dr.d):'Nueva visita');
+ vcur.est=r?r.est:'';$('#vbd').textContent=r&&r.est=='Completa'?'Guardar cambios':'Guardar borrador';
+ vgo(dr?dr.s||0:0)}
+const secHas=(j,d)=>VS[j].f.some(f=>f.k&&(v=>Array.isArray(v)?v.length:v!=null&&v!=='')(d[f.k]));
+function vgo(i){vstep=Math.max(0,Math.min(VS.length-1,i));$$('#vf .vs').forEach(s=>s.hidden=+s.dataset.s!=vstep);const d=vget();
+ $$('#vstp button').forEach((b,j)=>{b.classList.toggle('on',j==vstep);b.classList.toggle('ok',j!=vstep&&secHas(j,d));b.setAttribute('aria-current',j==vstep?'step':'false')});
+ $('[data-vx=prev]').disabled=vstep==0;$('#vbn').textContent=vstep==VS.length-1?'Terminar y guardar':'Siguiente';
+ const sb=$('#vstp button.on');sb.parentNode.parentNode.scrollLeft=sb.offsetLeft-60;scrollTo(0,0);requestAnimationFrame(pads);if(vdirty)vauto()}
+let vt;const vflush=()=>{clearTimeout(vt);if(!vcur)return;if(ls.set(VDK,JSON.stringify({id:vcur.id,d:vget(),s:vstep,t:Date.now()})))$('#vas').textContent='Guardado automático en este dispositivo · '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});else $('#vas').textContent='No se pudo guardar automáticamente (memoria llena)'};
+const vauto=()=>{clearTimeout(vt);vt=setTimeout(vflush,500)};
+function vexit(){if(!vcur)return;if(!vdirty&&!vcur.dr)ls.del(VDK);else vflush();vcur=null;vupd()}
+function vval(d){for(const f of REQ){if(!String(d[f.k]||'').trim()){vgo(f.s);const w=$(`#vf [data-w="${f.k}"]`);w.classList.add('err');setTimeout(()=>{$('#v-'+f.k).focus();w.scrollIntoView({block:'center'})},50);toast('Falta llenar: '+f.l);return false}}return true}
+function vsave(fin){const d=vget();if(fin&&!vval(d))return;
+ const now=new Date().toISOString();let r=vcur.id&&V.find(x=>x.id==vcur.id);
+ if(!r){r={id:uid(),cr:now};V.push(r)}
+ r.d=d;r.mod=now;r.est=fin?'Completa':'Borrador';vstore();ls.del(VDK);if(d.ts)ls.set('mese_ts',d.ts);
+ vcur=null;vupd();toast(fin?'Visita guardada':'Borrador guardado');go('visitas')}
+function vbus(v){const p=DB.activos.find(r=>nq(r.n)==nq(v));if(!p)return;const w=p.n.split(/\s+/),set=(k,x)=>{if(x!=null&&x!==''){const e=$('#v-'+k);if(e)e.value=x}};
+ set('ap_m',w.length>2?w.pop():'');set('ap_p',w.length>1?w.pop():'');set('nom',w.join(' '));
+ set('edad',p.ed);set('esc',p.esc||p.nv);set('grado',p.gr);set('col',p.col);set('tel_t',p.tel);set('ing_m',p.m);set('ing_y',p.y);
+ vdirty=true;vauto();toast('Datos de '+p.n+' cargados')}
+function vgps(){if(!navigator.geolocation)return toast('Este dispositivo no permite obtener la ubicación');const b=$('[data-vgps]'),done=()=>{b.disabled=false;b.textContent='Guardar ubicación actual'};b.disabled=true;b.textContent='Buscando ubicación…';
+ navigator.geolocation.getCurrentPosition(p=>{$('#v-gps').value=p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);gpsT();vdirty=true;vauto();done()},()=>{toast('No se pudo obtener la ubicación. Revise que el GPS esté encendido y dé permiso.');done()},{enableHighAccuracy:true,timeout:20000,maximumAge:60000})}
+const gpsT=()=>{const v=$('#v-gps').value;$('#gps-t').innerHTML=v?`<a href="https://www.google.com/maps?q=${encodeURIComponent(v)}" target="_blank" rel="noopener">Ver en mapa (${h(v)})</a> <button type="button" class="mini d" data-vgpsx>Quitar</button>`:''};
+
+/* ---------- Firmas con el dedo ---------- */
+function pads(){$$('#vf canvas[data-sig]').forEach(c=>{const w=c.clientWidth;if(!w)return;const r=devicePixelRatio||1;if(c.width==Math.round(w*r))return;
+ c.width=Math.round(w*r);c.height=Math.round(160*r);const x=c.getContext('2d');x.setTransform(r,0,0,r,0,0);x.lineWidth=2.4;x.lineCap=x.lineJoin='round';x.strokeStyle='#12335f';
+ const u=SIG[c.dataset.sig];if(u){const i=new Image();i.onload=()=>x.drawImage(i,0,0,w,160);i.src=u}})}
+let pen=null;
+document.addEventListener('pointerdown',e=>{const c=e.target.closest('canvas[data-sig]');if(!c)return;e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(er){}const x=c.getContext('2d'),b=c.getBoundingClientRect(),X=e.clientX-b.left,Y=e.clientY-b.top;pen={c,x,b};x.beginPath();x.moveTo(X,Y);x.lineTo(X+.1,Y+.1);x.stroke();x.beginPath();x.moveTo(X,Y)});
+document.addEventListener('pointermove',e=>{if(!pen)return;const {x,b}=pen,X=e.clientX-b.left,Y=e.clientY-b.top;x.lineTo(X,Y);x.stroke();x.beginPath();x.moveTo(X,Y)});
+const penUp=()=>{if(!pen)return;const c=pen.c,w=c.clientWidth,t=document.createElement('canvas');t.width=w;t.height=160;t.getContext('2d').drawImage(c,0,0,w,160);SIG[c.dataset.sig]=t.toDataURL('image/png');pen=null;vdirty=true;vauto()};
+document.addEventListener('pointerup',penUp);document.addEventListener('pointercancel',penUp);
+addEventListener('resize',()=>{if(cur=='vform')pads()});
+
+/* ---------- Lista, filtros y gráficas ---------- */
+const VC=[['Fecha',r=>fd(r.d.fecha)],['Participante',r=>vnm(r.d)],['Colonia',r=>r.d.col||'—'],['Trabajadora social',r=>r.d.ts||'—']];
+const uniq=k=>[...new Set(V.map(r=>r.d[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+const fillSel=(s,arr,all)=>{const v=s.value;s.innerHTML=`<option value="">${all}</option>`+arr.map(x=>`<option${x==v?' selected':''}>${h(x)}</option>`).join('')};
+const cntd=(rs,fn,byKey)=>{const m={};rs.forEach(r=>[].concat(fn(r)).forEach(k=>{if(k!=null&&k!=='')m[k]=(m[k]||0)+1}));const e=Object.entries(m);return Object.fromEntries(byKey?e.sort((a,b)=>a[0].localeCompare(b[0])):e.sort((a,b)=>b[1]-a[1]).slice(0,10))};
+const mlab=s=>s?s.slice(0,7):'';const mtxt=k=>k&&k.length==7?MES[+k.slice(5)-1].slice(0,3)+' '+k.slice(0,4):k;
+const vfilt=()=>{const q=$('#vq').value,a=$('#vd1').value,b=$('#vd2').value;
+ return V.filter(r=>VFL.every(f=>{const v=$('#vf-'+f.k).value;return !v||(f.k=='est'?r.est:r.d[f.k])==v})&&(!a||(r.d.fecha||'')>=a)&&(!b||(r.d.fecha||'')<=b)&&hit({...r.d,est:r.est},q))
+  .sort((x,y)=>(y.d.fecha||'').localeCompare(x.d.fecha||'')||(y.mod||'').localeCompare(x.mod||''))};
+function vupd(){fillSel($('#vf-ts'),uniq('ts'),'Todas');fillSel($('#vf-col'),uniq('col'),'Todas');fillSel($('#vrt'),uniq('ts'),'Todas');fillSel($('#vrc'),uniq('col'),'Todas');
+ $('#dl-ts').innerHTML=uniq('ts').map(x=>`<option value="${h(x)}">`).join('');
+ $('#dl-col').innerHTML=[...new Set([...uniq('col'),...DB.activos.map(r=>r.col).filter(Boolean)])].sort().map(x=>`<option value="${h(x)}">`).join('');
+ $('#dl-part').innerHTML=DB.activos.map(r=>`<option value="${h(r.n)}">`).join('');
+ const rs=vfilt();$('#vn').textContent='Visitas: '+rs.length;$('#k-visitas').textContent=V.length;
+ $('#vl').innerHTML=rs.length?`<table><thead><tr>${VC.map(c=>`<th>${c[0]}`).join('')}<th>Estado<th></th></tr></thead><tbody>${rs.map(r=>`<tr>${VC.map(c=>`<td data-l="${c[0]}">${h(c[1](r))}`).join('')}<td data-l="Estado"><span class="chip ${r.est=='Completa'?'c':'b'}">${r.est}</span><td><button class="mini" data-vver="${r.id}">Ver</button><button class="mini" data-ved="${r.id}">Editar</button><button class="mini d" data-vrm="${r.id}">Eliminar</button></tr>`).join('')}</tbody></table>`
+  :`<p class="vacio">${V.length?'No hay visitas con esta búsqueda o filtros.':'Aún no hay visitas registradas. Toque “Nueva visita” para empezar.'}</p>`;
+ const G=[['Por trabajadora social',cntd(rs,r=>r.d.ts||'Sin dato')],['Por colonia',cntd(rs,r=>r.d.col||'Sin dato')],['Por estado',cntd(rs,r=>r.est)],['Visitas por mes',Object.fromEntries(Object.entries(cntd(rs,r=>mlab(r.d.fecha),1)).map(([k,v])=>[mtxt(k),v]))],['Su casa es',cntd(rs,r=>r.d.casa||'Sin dato')],['Servicios con los que NO cuentan',cntd(rs,r=>['Agua','Luz','Drenaje','Internet','Computadora'].filter(x=>!(r.d.serv||[]).includes(x)))]];
+ $('#vg').innerHTML=rs.length?G.filter(g=>Object.keys(g[1]).length).map(([l,o])=>bars(l,o)).join(''):'<p class="vacio">No hay visitas con esta búsqueda o filtros.</p>';
+ const p=vdraft();$('#vpend').innerHTML=p&&!vcur?`<div class="aviso"><span><b>Captura sin terminar:</b> ${h(vnm(p.d||{}))} · ${new Date(p.t).toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}</span><span class="gu"><button class="btn sec" data-vx="desc">Descartar</button><button class="btn" data-vx="cont">Continuar</button></span></div>`:'';
+ const bk=ls.get('mese_bk'),old=V.length&&(!bk||Date.now()-new Date(bk)>7*864e5);
+ $('#vinfo').innerHTML=`<p class="${old?'aviso':'guia'}" style="display:block">Funciona sin internet: las visitas se guardan en este dispositivo (${V.length} guardadas). Último respaldo: <b>${bk?new Date(bk).toLocaleDateString('es-MX',{dateStyle:'medium'}):'nunca'}</b>.${old?' Le recomendamos descargar o enviar un respaldo (abajo, en “Respaldo, exportar e importar”).':''}</p>`;
+ vrep()}
+
+/* ---------- Reporte por fecha ---------- */
+function vrep(){const a=$('#vr1').value,b=$('#vr2').value,t=$('#vrt').value,c=$('#vrc').value;
+ const all=V.filter(r=>(!a||(r.d.fecha||'')>=a)&&(!b||(r.d.fecha||'')<=b)&&(!t||r.d.ts==t)&&(!c||r.d.col==c)),rs=all.filter(r=>r.est=='Completa');
+ const pr=fn=>{const xs=rs.map(r=>fn(r.d)).filter(x=>x>0);return xs.length?sm(xs)/xs.length:0};
+ const pct=fn=>rs.length?Math.round(rs.filter(r=>fn(r.d)).length/rs.length*100)+'%':'—';
+ const K=[['Visitas terminadas',rs.length],['Borradores pendientes',all.length-rs.length],['Personas en las familias',sm(rs.map(r=>(r.d.fam||[]).length))],['Ingreso familiar promedio',money(Math.round(pr(TOT.ingreso)))],['Egreso mensual promedio',money(Math.round(pr(TOT.egreso)))],['Familias con deudas',pct(d=>d.deu=='Sí')],['Reciben algún apoyo',pct(d=>TOT.apoyos(d)>0)]];
+ const G=[['Por trabajadora social',cntd(rs,r=>r.d.ts||'Sin dato')],['Por colonia',cntd(rs,r=>r.d.col||'Sin dato')],['Visitas por mes',Object.fromEntries(Object.entries(cntd(rs,r=>mlab(r.d.fecha),1)).map(([k,v])=>[mtxt(k),v]))],['Su casa es',cntd(rs,r=>r.d.casa||'Sin dato')],['Servicios con los que NO cuentan',cntd(rs,r=>['Agua','Luz','Drenaje','Internet','Computadora'].filter(x=>!(r.d.serv||[]).includes(x)))],['Apoyos que reciben',cntd(rs,r=>AP.filter(([k])=>num(r.d[k])>0).map(x=>x[2]))],['Asistencia médica',cntd(rs,r=>r.d.med||[])],['Hábitos alimenticios',cntd(rs,r=>r.d.alim||'Sin dato')],['Comidas al día',cntd(rs,r=>r.d.comidas||'Sin dato')],['Huerto familiar',cntd(rs,r=>r.d.huerto||'Sin dato')],['Higiene de la vivienda',cntd(rs,r=>r.d.hig||'Sin dato')],['Factores de riesgo',cntd(rs,r=>r.d.riesgo||[])]].filter(g=>Object.keys(g[1]).length);
+ const per=(a||b)?`Del ${a?fd(a):'inicio'} al ${b?fd(b):fd(hoyISO())}`:'Todas las fechas';
+ $('#vrb').innerHTML=`<p class="sub">${per}${t?' · '+h(t):''}${c?' · '+h(c):''}</p><div class="kp">${K.map(([l,v])=>`<div><b>${v}</b>${l}</div>`).join('')}</div>`+(rs.length?`<div class="grid">${G.map(([l,o])=>bars(l,o)).join('')}</div>`:'<p class="vacio">No hay visitas terminadas en ese periodo.</p>');
+ VR={per,t,c,K,G,rs}}
+function vrq(k){const d=new Date(),f=x=>x.toLocaleDateString('en-CA'),y=d.getFullYear(),m=d.getMonth();let a='',b='';
+ if(k=='mes'){a=f(new Date(y,m,1));b=f(new Date(y,m+1,0))}else if(k=='ant'){a=f(new Date(y,m-1,1));b=f(new Date(y,m,0))}else if(k=='sem'){a=f(new Date(Date.now()-6*864e5));b=f(d)}else if(k=='anio'){a=y+'-01-01';b=y+'-12-31'}
+ $('#vr1').value=a;$('#vr2').value=b;vrep()}
+const kvh=(t,rows)=>kv(h(t),rows.map(([k,v])=>[h(k),h(v)]));
+const vrHoja=()=>{const {per,t,c,K,G,rs}=VR,half=Math.ceil(G.length/2);
+ return `<div class="pg"><div class="hd"><b class="lg">mese</b><h2>VISITAS DOMICILIARIAS · ${h(per.toUpperCase())}${t?' · '+h(t):''}${c?' · '+h(c):''}</h2></div><div class="gd"><div>${kvh('Resumen',K)}${G.slice(0,half).map(([l,o])=>kvh(l,Object.entries(o))).join('')}</div><div>${G.slice(half).map(([l,o])=>kvh(l,Object.entries(o))).join('')}</div></div></div>`
+ +(rs.length?`<div class="pg"><table class="fi"><tr><th>Fecha<th>Participante<th>Colonia<th>Trabajadora social<th>Ingreso<th>Egreso</tr>${rs.map(r=>`<tr><td>${fd(r.d.fecha)}<td>${h(vnm(r.d))}<td>${h(r.d.col||'')}<td>${h(r.d.ts||'')}<td>${money(TOT.ingreso(r.d))}<td>${money(TOT.egreso(r.d))}</tr>`).join('')}</table></div>`:'')};
+
+/* ---------- Ficha imprimible de una visita ---------- */
+function ficha(r){const d=r.d,val=f=>{const v=d[f.k];let s=f.t=='mes'?(v?MES[v-1]:''):f.t=='mo'?(v?money(v):''):f.t=='dt'?(v?fd(v):''):Array.isArray(v)?v.join(', '):v??'';if(f.ot&&d[f.k+'_ot'])s+=(s?', ':'')+d[f.k+'_ot'];return h(s)};
+ let ex='';const sec=s=>{let rows='';s.f.forEach(f=>{
+  if(f.h)rows+=`<tr><th colspan=2 class="s2">${f.h}</th></tr>`;
+  else if(f.tot)rows+=`<tr><td>${f.l}<td><b>${money(TOT[f.tot](d))}</b></tr>`;
+  else if(f.t=='tb'){const L=d[f.k]||[];ex+=`<table class="fi"><tr><th colspan=${f.c.length}>${f.k=='fam'?'Integrantes de la familia':'Antecedentes médicos familiares'}</th></tr><tr>${f.c.map(c=>`<th>${c.l}`).join('')}</tr>${L.length?L.map(o=>`<tr>${f.c.map(c=>`<td>${h(c.t=='mo'&&o[c.k]?money(o[c.k]):c.t=='dt'?fd(o[c.k]||''):o[c.k]||'')}`).join('')}</tr>`).join(''):`<tr><td colspan=${f.c.length}>Sin registros</tr>`}</table>`}
+  else if(f.t=='sig')rows+=`<tr><td>${f.l}<td>${d[f.k]?`<img src="${d[f.k]}" alt="Firma" style="max-height:70px;max-width:100%">`:''}</tr>`;
+  else if(f.t=='gps')rows+=d.gps?`<tr><td>${f.l}<td>${h(d.gps)}</tr>`:'';
+  else if(f.t!='bus')rows+=`<tr><td>${f.cl||f.l}<td>${val(f)}</tr>`});
+  return rows?`<table class="fi"><tr><th colspan=2>${s.t}</th></tr>${rows}</table>`:''};const cuerpo=VS.map(sec).join('');
+ return `<div class="pg"><div class="hd"><b class="lg">mese</b><h2>MESE VASCO DE QUIROGA I.A.P. · SEGUIMIENTO FAMILIAR<br><small>${h(vnm(d))} · ${fd(d.fecha)} · ${r.est}</small></h2></div><div class="fic">${cuerpo}</div>${ex}</div>`}
+
+/* ---------- Respaldo y Excel ---------- */
+const dlf=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.hidden=true;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)};
+const bkFile=()=>new File([JSON.stringify({app:'MESE',tipo:'visitas',version:1,exportado:new Date().toISOString(),visitas:V})],`MESE_visitas_respaldo_${hoyISO()}.json`,{type:'application/json'});
+function vcsv(list,name){if(!list.length)return toast('No hay visitas para exportar');
+ const cols=[['ID',r=>r.id],['Estado',r=>r.est],['Creado',r=>r.cr],['Modificado',r=>r.mod],
+  ...VFS.filter(f=>f.k&&!['tb','sig'].includes(f.t)).flatMap(f=>{const g=r=>{const v=r.d[f.k];return f.t=='mes'&&v?MES[v-1]:Array.isArray(v)?v.join('; '):v??''};return f.ot?[[f.cl||f.l,g],[(f.cl||f.l)+' (otro)',r=>r.d[f.k+'_ot']||'']]:[[f.cl||f.l,g]]}),
+  ['Nº de integrantes',r=>(r.d.fam||[]).length],['Integrantes',r=>(r.d.fam||[]).map(o=>[o.n,o.par,o.ed&&o.ed+' años',o.oc,o.ing&&'$'+o.ing].filter(Boolean).join(' / ')).join(' | ')],
+  ['Antecedentes médicos',r=>(r.d.ant||[]).map(o=>[o.n,o.par,o.enf,o.at].filter(Boolean).join(' / ')).join(' | ')],
+  ['Ingreso total',r=>TOT.ingreso(r.d)],['Total apoyos',r=>TOT.apoyos(r.d)],['Egreso total',r=>TOT.egreso(r.d)],['Balance',r=>TOT.balance(r.d)],
+  ['Firma trabajadora social',r=>r.d.f_ts?'Sí':'No'],['Firma madre o tutor',r=>r.d.f_tu?'Sí':'No']];
+ const q=v=>{v=String(v??'');return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+ dlf(new Blob(['﻿'+[cols.map(c=>q(c[0])).join(','),...list.map(r=>cols.map(c=>q(c[1](r))).join(','))].join('\r\n')],{type:'text/csv;charset=utf-8'}),name)}
+function ask(t,m,ok,fn){const d=$('#cf');$('#cft').textContent=t;$('#cfm').textContent=m;$('#cfo').textContent=ok;d.returnValue='';d.onclose=()=>{if(d.returnValue=='si')fn()};d.showModal()}
+$('#vimp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const j=JSON.parse(await f.text()),arr=Array.isArray(j)?j:j.visitas;if(!Array.isArray(arr))throw 0;let n=0,u=0;
+  arr.forEach(r=>{if(!r||!r.id||!r.d)return;const x=V.find(y=>y.id==r.id);if(!x){V.push(r);n++}else if((r.mod||'')>(x.mod||'')){Object.assign(x,r);u++}});
+  vstore();vupd();toast(`Respaldo importado: ${n} nuevas, ${u} actualizadas`)}catch(er){toast('El archivo no es un respaldo válido de visitas')}};
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(d.vst)vgo(+d.vst);
+ else if(d.vadd){const r=vrow(d.vadd);$('[data-c]',r).focus();vdirty=true;vauto()}
+ else if(d.vdel!==undefined){const t=b.closest('[data-tb]');b.closest('.tr').remove();vnum(t.dataset.tb);vtot();vdirty=true;vauto()}
+ else if(d.vsc){SIG[d.vsc]='';const c=$(`canvas[data-sig="${d.vsc}"]`);c.width=0;pads();vdirty=true;vauto()}
+ else if(d.vgps!==undefined)vgps();
+ else if(d.vgpsx!==undefined){$('#v-gps').value='';gpsT();vdirty=true;vauto()}
+ else if(d.vver){const r=V.find(x=>x.id==d.vver);vview=r.id;$('#vvb').innerHTML=ficha(r);$('#vv').showModal()}
+ else if(d.ved){vopen(d.ved);go('vform')}
+ else if(d.vrm){const r=V.find(x=>x.id==d.vrm);ask('Eliminar visita',`Se borrará la visita de ${vnm(r.d)} (${fd(r.d.fecha)}) de este dispositivo. No se puede deshacer.`,'Eliminar',()=>{V=V.filter(x=>x.id!=r.id);vstore();vupd();toast('Visita eliminada')})}
+ else if(d.vrq)vrq(d.vrq);
+ else if(d.vv){$$('button',b.parentNode).forEach(x=>x.classList.toggle('on',x==b));$('#vl').hidden=d.vv!='l';$('#vg').hidden=d.vv!='g';$('#vr').hidden=d.vv!='r';$('#vfl').hidden=$('#vn').hidden=d.vv=='r';if(d.vv=='r')vrep()}
+ else if(d.vx){const x=d.vx,r=vview&&V.find(y=>y.id==vview);switch(x){
+  case 'new':{const p=vdraft();const nw=()=>{ls.del(VDK);vopen(null);go('vform')};p?ask('Hay una captura sin terminar',`Si empieza una nueva visita se perderá la captura de ${vnm(p.d||{})}.`,'Empezar nueva',nw):nw();break}
+  case 'cont':{const p=vdraft();if(p){vopen(p.id,p);go('vform')}break}
+  case 'desc':ask('Descartar captura','Se borrará lo capturado y no guardado.','Descartar',()=>{ls.del(VDK);vupd()});break;
+  case 'salir':{const keep=vdirty||vcur.dr;go('visitas');if(keep)toast('La captura quedó pendiente; puede continuarla aquí');break}
+  case 'prev':vgo(vstep-1);break;
+  case 'next':vstep==VS.length-1?vsave(true):vgo(vstep+1);break;
+  case 'draft':vsave(vcur.est=='Completa');break;
+  case 'clr':$$('#vfl input,#vfl select').forEach(i=>i.value='');vupd();break;
+  case 'vclose':$('#vv').close();break;
+  case 'vedit':$('#vv').close();vopen(vview);go('vform');break;
+  case 'vprint':case 'vpdf':imp(x=='vpdf',ficha(r),'Visita_'+vnm(r.d).replace(/\s+/g,'_'));break;
+  case 'rprint':case 'rpdf':vrep();imp(x=='rpdf',vrHoja(),'Reporte_visitas_MESE');break;
+  case 'rcsv':vrep();vcsv(VR.rs,`MESE_reporte_visitas_${hoyISO()}.csv`);break;
+  case 'csv':vcsv(V,`MESE_visitas_${hoyISO()}.csv`);break;
+  case 'bk':dlf(bkFile(),bkFile().name);ls.set('mese_bk',new Date().toISOString());vupd();toast('Respaldo descargado');break;
+  case 'share':{const f=bkFile();navigator.share({files:[f],title:'Respaldo de visitas MESE',text:`Respaldo de ${V.length} visitas`}).then(()=>{ls.set('mese_bk',new Date().toISOString());vupd()}).catch(()=>{});break}
+  case 'inst':if(vprompt){vprompt.prompt();vprompt=null;$('#vinst').hidden=true}break}}});
+$('#vf').addEventListener('input',e=>{vdirty=true;const w=e.target.closest('.err');if(w)w.classList.remove('err');vtot();vauto()});
+$('#vf').addEventListener('change',e=>{if(e.target.id=='v-bus')vbus(e.target.value);if(e.target.dataset.f=='ts'&&!$('#v-f_ts_n').value)$('#v-f_ts_n').value=e.target.value});
+$('#vf').addEventListener('pointerdown',e=>{const l=e.target.closest('.ops label');if(l){const i=$('input',l);l.dataset.was=i.type=='radio'&&i.checked?'1':''}});
+$('#vf').addEventListener('click',e=>{const i=e.target.closest('.ops input[type=radio]');if(i&&i.closest('label').dataset.was=='1'){i.checked=false;i.closest('label').dataset.was='';i.dispatchEvent(new Event('input',{bubbles:true}))}});
+$('#visitas').addEventListener('input',e=>{if(e.target.closest('#vrf'))vrep();else if(e.target.closest('#vfl'))vupd()});
+$('#rclr').onclick=()=>{$$('#r-activos .fl input,#r-activos .fl select').forEach(i=>i.value='');repo()};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&vcur&&vdirty)vflush()});addEventListener('pagehide',()=>{if(vcur&&vdirty)vflush()});
+
+/* ---------- Búsqueda global en Inicio ---------- */
+$('#gq').addEventListener('input',()=>{const q=$('#gq').value,g=$('#gr');if(!nq(q)){g.hidden=true;return}
+ const grp=[...Object.keys(P).map(p=>[p,P[p].t,DB[p].filter(r=>hit(r,q)),r=>r.n,r=>p=='familiares'?r.par+' de '+r.hijo:p=='bajas'?r.mot:p=='historico'?r.res:r.nv+' · '+(r.col||'')]),['visitas','Visitas domiciliarias',V.filter(r=>hit(r.d,q)),r=>vnm(r.d),r=>fd(r.d.fecha)+' · '+(r.d.col||'')]].filter(x=>x[2].length);
+ g.hidden=false;g.innerHTML=grp.length?grp.map(([p,t,rs,a,b])=>`<h3>${t} (${rs.length})</h3>${rs.slice(0,5).map(r=>`<a href="#${p}" data-gp="${p}"><strong>${h(a(r))}</strong><span>${h(b(r))}</span></a>`).join('')}`).join(''):'<p class="vacio" style="padding:0">Sin resultados.</p>'});
+document.addEventListener('click',e=>{const a=e.target.closest('a[data-gp]');if(!a)return;const p=a.dataset.gp,q=$('#gq').value,inp=p=='visitas'?$('#vq'):$('#q-'+p);inp.value=q;p=='visitas'?vupd():upd(p)});
+
+/* ---------- Sin conexión e instalación ---------- */
+const netU=()=>{$('#net').hidden=navigator.onLine};addEventListener('online',netU);addEventListener('offline',netU);netU();
+try{if(navigator.canShare&&navigator.canShare({files:[new File(['{}'],'a.json',{type:'application/json'})]}))$('#vshare').hidden=false}catch(e){}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();vprompt=e;$('#vinst').hidden=false});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+addEventListener('hashchange',route);all();route();vload();
 </script></body></html>

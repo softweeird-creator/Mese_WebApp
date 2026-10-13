@@ -1,15 +1,38 @@
 # MESE · Sistema de gestión (prototipo front-end)
 
-Prototipo de interfaz en HTML, CSS y JavaScript para administrar participantes, familiares, bajas y registro histórico de MESE.
+Prototipo en HTML, CSS y JavaScript para administrar participantes, familiares, bajas, registro histórico y visitas domiciliarias de MESE Vasco de Quiroga I.A.P.
 
 ## Cómo usarlo
 Abra `index.html` en cualquier navegador. No necesita instalación.
 
+Para usar el panel de **Visitas domiciliarias** sin internet en los celulares, publique la carpeta en GitHub Pages (u otro hosting con `https`):
+1. En GitHub: *Settings → Pages → Build and deployment → Branch: `main` / root → Save*.
+2. Abra la dirección que da GitHub (por ejemplo `https://softweeird-creator.github.io/Mese_WebApp/`) **una vez con internet** en cada teléfono.
+3. Elija “Agregar a pantalla de inicio” (o el botón “Instalar en el teléfono”). Desde ese momento abre y guarda visitas aunque no haya señal.
+
 ## Qué incluye
-- Paneles: Participantes activos, Registro histórico, Familiares y Bajas.
-- Filtros combinables y gráficas con los resultados.
-- Altas, ediciones, bajas y reactivaciones.
-- Reporte del mes con hoja de estadísticas imprimible y descargable en PDF.
+- Paneles: Participantes activos, Registro histórico, Familiares, Bajas y Visitas domiciliarias.
+- Barra de búsqueda en cada panel (sin importar acentos ni mayúsculas) y buscador general en Inicio.
+- Filtros combinables y gráficas. Año de ingreso con campo manual y mes de ingreso con los 12 meses.
+- Altas, ediciones, bajas (con filtro por mes de baja) y reactivaciones.
+- Reporte del mes con filtros de mes, año, género y nivel; hoja de estadísticas imprimible y en PDF.
+
+### Visitas domiciliarias (formato “Seguimiento familiar”)
+- Formulario por pasos pensado para el celular, con las 10 secciones del formato en papel, más datos de la visita y firmas.
+- Opciones grandes para tocar con el dedo, tablas de integrantes y antecedentes médicos que crecen según se necesite, totales de ingresos, apoyos y egresos calculados solos.
+- Buscador de participantes ya registrados para llenar sus datos automáticamente.
+- Ubicación GPS opcional del domicilio y firmas con el dedo (trabajadora social y madre o tutor).
+- Guardado automático mientras se escribe: si se cierra el navegador o se acaba la batería, la captura se puede continuar.
+- Borradores y visitas terminadas; búsqueda, filtros (trabajadora social, colonia, estado, vivienda, rango de fechas), edición y eliminación.
+- Gráficas y **reporte por fecha** (este mes, mes pasado, últimos 7 días, año o rango libre) con impresión, PDF y exportación a Excel (CSV).
+- Ficha individual de cada visita imprimible o en PDF.
+- Respaldo: descargar o enviar (WhatsApp, correo) un archivo `.json`; en la oficina, “Importar respaldo” junta las visitas de varios teléfonos sin duplicarlas.
+
+## Archivos
+- `index.html` – la aplicación completa.
+- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v2`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
+- `manifest.webmanifest`, `icon-192.png`, `icon-512.png` – instalación en la pantalla de inicio.
 
 ## Pendiente
-Los datos son de ejemplo y se guardan solo en la memoria del navegador. Falta conectar un backend y una base de datos.
+- Los datos de participantes, familiares, bajas e histórico son de ejemplo y viven solo en la memoria del navegador.
+- Las visitas sí se guardan en el dispositivo (IndexedDB), pero cada teléfono tiene las suyas: falta un backend y una base de datos compartida. Cada visita ya tiene un `id` único y fecha de modificación (`mod`), listos para sincronizarse cuando exista el servidor.
