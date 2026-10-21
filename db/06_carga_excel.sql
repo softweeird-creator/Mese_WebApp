@@ -468,7 +468,12 @@ BEGIN
     SET v_per = LAST_INSERT_ID();
     INSERT INTO carga_mapa VALUES ('BASE', v_fila, 'PARTICIPANTE', v_per, fn_norm(v_nombre));
     INSERT INTO participante (persona_id, familia_id, numero_becado, grupo_beca, trabajadora_id)
-    VALUES (v_per, v_fam, fn_num(r_becado), IF(fn_num(r_grupobeca) BETWEEN 1 AND 9, fn_num(r_grupobeca), NULL), NULL);
+    VALUES (v_per, v_fam, IF(fn_num(r_becado) BETWEEN 1 AND 255, fn_num(r_becado), NULL),
+            IF(fn_num(r_grupobeca) BETWEEN 1 AND 9, fn_num(r_grupobeca), NULL), NULL);
+    -- Un número fuera de rango (p. ej. un folio en lugar de "1er hermano") detenía toda la carga
+    IF fn_texto(r_becado) IS NOT NULL AND NOT COALESCE(fn_num(r_becado) BETWEEN 1 AND 255, FALSE) THEN
+      INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema) VALUES ('BASE', v_fila, 'No. BECADO', r_becado, 'No es un número entre 1 y 255; no se guardó');
+    END IF;
     IF fn_fecha(r_ing) IS NULL THEN
       INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema) VALUES ('BASE', v_fila, 'INGRESO A MESE', r_ing, 'Sin fecha de ingreso; se usó la fecha de corte');
     END IF;
