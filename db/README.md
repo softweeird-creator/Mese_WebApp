@@ -28,7 +28,7 @@ mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 45 pasaron, 0 fall
 mysql -u root -p < 08_seguridad.sql
 ```
 
-Si MySQL tiene el registro binario activo (lo trae por omisión) y no instala con root, active antes `SET GLOBAL log_bin_trust_function_creators = 1;` para que acepte las funciones.
+Probado en MySQL 8.0.46 con el registro binario activo (como viene por omisión): los 8 archivos instalan sin cambiar ninguna variable del servidor y `07_pruebas.sql` da 45 pasaron, 0 fallaron. No hace falta `log_bin_trust_function_creators`.
 
 ## Diagrama
 
