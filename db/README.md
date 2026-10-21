@@ -153,7 +153,22 @@ Las diferencias pequeñas tienen explicación:
 
 De 1,407 registros, solo 29 quedaron para revisión, todos por datos que faltan en el Excel (por ejemplo, 9 registros históricos sin ninguna fecha).
 
-Probado en MariaDB 11.4. MySQL no se podía instalar en el entorno de trabajo; se revisaron las diferencias con MySQL 8 y se evitaron (por ejemplo, leer dos veces la misma tabla temporal en una consulta).
+Esa prueba con los archivos reales se hizo en MariaDB 11.4. En MySQL 8.0.46 la carga se probó con los datos ficticios de `pruebas/` (ver abajo).
+
+## Pruebas automáticas (sin datos reales)
+
+`pruebas/probar_todo.sh` instala todo desde cero en un MySQL **de prueba** y corre:
+
+1. `07_pruebas.sql`: 45 pruebas de las reglas de la base.
+2. `pruebas/pruebas_carga.sql`: carga con `LOAD DATA` los CSV de `pruebas/datos/` (personas inventadas, con el mismo acomodo de columnas que BASE, BDI y la histórica) y revisa 47 cosas. Por ejemplo, que los hermanos queden en una sola familia, que "REPSOL/BÉCALOS" sean dos becas, que se entiendan las fechas como número de serie de Excel, que lo que no se reconoce quede en `carga_pendiente` y que repetir la carga no duplique nada.
+3. `08_seguridad.sql` con contraseñas de prueba. Después entra como `mese_app` y `mese_reportes` y revisa qué pueden hacer y qué se les niega.
+
+```bash
+cd db
+BORRAR_BASE=si bash pruebas/probar_todo.sh     # al final dice "TODO PASÓ"
+```
+
+**Borra la base `mese` y los usuarios de la aplicación**, así que nunca debe correrse en el servidor real. Los Excel reales (datos de menores) nunca se suben al repositorio.
 
 ## Preguntas para MESE
 
