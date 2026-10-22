@@ -51,6 +51,7 @@ GRANT EXECUTE ON PROCEDURE mese.sp_actualizar_persona  TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_guardar_familiar    TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_guardar_escolaridad TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_registrar_baja      TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_datos_programa      TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_reactivar           TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_guardar_visita      TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_eliminar_visita     TO 'mese_app_rol';

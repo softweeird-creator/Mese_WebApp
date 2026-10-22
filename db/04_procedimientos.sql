@@ -24,6 +24,7 @@ DROP PROCEDURE IF EXISTS sp_actualizar_persona;
 DROP PROCEDURE IF EXISTS sp_guardar_familiar;
 DROP PROCEDURE IF EXISTS sp_guardar_escolaridad;
 DROP PROCEDURE IF EXISTS sp_eliminar_visita;
+DROP PROCEDURE IF EXISTS sp_datos_programa;
 
 DELIMITER //
 
@@ -275,7 +276,8 @@ END //
 -- ---------------------------------------------------------------------
 CREATE PROCEDURE sp_registrar_baja(
   IN p_participante_id INT UNSIGNED, IN p_fecha DATE, IN p_causa VARCHAR(80),
-  IN p_causa_estadistica VARCHAR(60), IN p_caso_exito VARCHAR(60), IN p_motivo TEXT)
+  IN p_causa_estadistica VARCHAR(60), IN p_caso_exito VARCHAR(60), IN p_motivo TEXT,
+  IN p_certificado VARCHAR(80), IN p_riesgo_egreso VARCHAR(20), IN p_nivel_riesgo_egreso VARCHAR(10))
 MODIFIES SQL DATA
 BEGIN
   DECLARE v_insc INT UNSIGNED; DECLARE v_causa TINYINT UNSIGNED;
@@ -297,11 +299,16 @@ BEGIN
          causa_estadistica_id = (SELECT id FROM cat_causa_baja_estadistica WHERE nombre = p_causa_estadistica),
          caso_exito_id = (SELECT id FROM cat_caso_exito WHERE nombre = p_caso_exito),
          motivo = fn_texto(p_motivo),
+         certificado_id = (SELECT id FROM cat_certificado WHERE nombre = p_certificado),
+         riesgo_egreso_id = (SELECT id FROM cat_nivel_riesgo WHERE nombre = p_nivel_riesgo_egreso),
          nivel_final_id = (SELECT pe.nivel_id FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
                             WHERE pe.participante_id = p_participante_id ORDER BY c.inicio DESC LIMIT 1),
          grado_final    = (SELECT pe.grado FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
                             WHERE pe.participante_id = p_participante_id ORDER BY c.inicio DESC LIMIT 1)
    WHERE id = v_insc;
+  -- "Económico/Emocional" = dos tipos de riesgo
+  INSERT IGNORE INTO inscripcion_riesgo (inscripcion_id, momento, tipo_riesgo_id)
+  SELECT v_insc, 'EGRESO', id FROM cat_tipo_riesgo WHERE FIND_IN_SET(nombre, REPLACE(COALESCE(p_riesgo_egreso, ''), '/', ','));
   UPDATE participante_beca SET hasta = COALESCE(p_fecha, CURDATE())
    WHERE participante_id = p_participante_id AND hasta IS NULL;
   COMMIT;
@@ -336,6 +343,8 @@ BEGIN
   DECLARE v_part INT UNSIGNED; DECLARE v_fam INT UNSIGNED; DECLARE v_usr SMALLINT UNSIGNED;
   DECLARE v_nom, v_app, v_apm VARCHAR(80);
   DECLARE v_gps VARCHAR(40);
+  DECLARE v_fnac DATE; DECLARE v_curp VARCHAR(40); DECLARE v_tel_p VARCHAR(40); DECLARE v_correo VARCHAR(120);
+  DECLARE v_fecha DATE; DECLARE v_carrera VARCHAR(120);
   DECLARE v_fin BOOLEAN DEFAULT FALSE;
   DECLARE c_n, c_ec, c_par, c_esc, c_oc, c_fn VARCHAR(160); DECLARE c_ed, c_ing, c_tel VARCHAR(40);
   DECLARE v_pid INT UNSIGNED;
@@ -387,6 +396,43 @@ BEGIN
     END IF;
     SELECT familia_id INTO v_fam FROM participante WHERE persona_id = v_part;
 
+    -- Datos personales del participante (solo los que vienen llenos y son válidos)
+    SET v_fecha = COALESCE(IF(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fecha')) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
+                              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fecha')), '%Y-%m-%d'), NULL), CURDATE());
+    SET v_fnac = IF(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fnac')) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
+                    STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fnac')), '%Y-%m-%d'), NULL);
+    IF v_fnac > CURDATE() OR v_fnac < '1900-01-01' THEN SET v_fnac = NULL; END IF;
+    SET v_curp = UPPER(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.curp'))));
+    IF NOT v_curp REGEXP '^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$'
+       OR EXISTS (SELECT 1 FROM persona WHERE curp = v_curp AND id <> v_part) THEN SET v_curp = NULL; END IF;
+    SET v_tel_p = NULLIF(REGEXP_REPLACE(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.tel_p')), ''), '[^0-9]', ''), '');
+    IF LENGTH(v_tel_p) <> 10 THEN SET v_tel_p = NULL; END IF;
+    SET v_correo = LOWER(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.mail'))));
+    IF v_correo NOT LIKE '%_@_%._%' THEN SET v_correo = NULL; END IF;
+    UPDATE persona SET
+      fecha_nac_aprox  = IF(v_fnac IS NULL, fecha_nac_aprox, FALSE),
+      fecha_nacimiento = COALESCE(v_fnac, fecha_nacimiento),
+      genero           = COALESCE(CASE JSON_UNQUOTE(JSON_EXTRACT(d, '$.gen')) WHEN 'Mujer' THEN 'F' WHEN 'Hombre' THEN 'M' END, genero),
+      curp             = COALESCE(v_curp, curp),
+      telefono         = COALESCE(v_tel_p, telefono),
+      tipo_sangre_id   = COALESCE((SELECT id FROM cat_tipo_sangre WHERE nombre = REPLACE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.sangre')), '−', '-')), tipo_sangre_id)
+    WHERE id = v_part;
+
+    -- Beca MESE: patrocinadores marcados que no estén ya vigentes
+    INSERT IGNORE INTO participante_beca (participante_id, patrocinador_id, desde)
+    SELECT v_part, cp.id, v_fecha FROM cat_patrocinador cp
+    WHERE JSON_CONTAINS(JSON_EXTRACT(d, '$.pat'), JSON_QUOTE(cp.nombre))
+      AND NOT EXISTS (SELECT 1 FROM participante_beca b WHERE b.participante_id = v_part AND b.patrocinador_id = cp.id AND b.hasta IS NULL);
+
+    -- Carrera u oficio en la escolaridad más reciente
+    SET v_carrera = fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.carrera')));
+    IF v_carrera IS NOT NULL THEN
+      INSERT IGNORE INTO cat_carrera (nombre) VALUES (v_carrera);
+      UPDATE participante_escolaridad SET carrera_id = (SELECT id FROM cat_carrera WHERE nombre = v_carrera)
+      WHERE id = (SELECT id FROM (SELECT pe.id FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
+                                  WHERE pe.participante_id = v_part ORDER BY c.inicio DESC LIMIT 1) x);
+    END IF;
+
     -- Domicilio actual de la familia
     SET v_gps = JSON_UNQUOTE(JSON_EXTRACT(d, '$.gps'));
     UPDATE familia SET
@@ -396,6 +442,8 @@ BEGIN
       referencias  = COALESCE(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.ref'))), referencias),
       entre_calles = COALESCE(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.entre'))), entre_calles),
       telefono     = COALESCE(NULLIF(REGEXP_REPLACE(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.tel_t')), ''), '[^0-9]', ''), ''), telefono),
+      correo       = COALESCE(v_correo, correo),
+      aviso_privacidad = IF(JSON_UNQUOTE(JSON_EXTRACT(d, '$.aviso')) = 'Firmado', COALESCE(aviso_privacidad, v_fecha), aviso_privacidad),
       latitud      = COALESCE(fn_num(SUBSTRING_INDEX(v_gps, ',', 1)), latitud),
       longitud     = COALESCE(fn_num(SUBSTRING_INDEX(v_gps, ',', -1)), longitud)
     WHERE id = v_fam;
@@ -679,6 +727,40 @@ BEGIN
           (SELECT id FROM cat_turno WHERE nombre = p_turno))
   ON DUPLICATE KEY UPDATE escuela_id = VALUES(escuela_id), nivel_id = VALUES(nivel_id), grado = VALUES(grado),
                           carrera_id = VALUES(carrera_id), grupo = VALUES(grupo), turno_id = VALUES(turno_id);
+END //
+
+-- Datos del participante dentro del programa: no. de becado, grupo de beca, trabajadora social
+-- asignada, becas ("Repsol/Bécalos" = dos) y aviso de privacidad de la familia.
+-- Un parámetro NULL deja el dato como estaba.
+CREATE PROCEDURE sp_datos_programa(
+  IN p_participante_id INT UNSIGNED, IN p_numero_becado TINYINT UNSIGNED, IN p_grupo_beca TINYINT UNSIGNED,
+  IN p_trabajadora VARCHAR(100), IN p_patrocinadores VARCHAR(200), IN p_aviso_firmado DATE)
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  IF NOT EXISTS (SELECT 1 FROM participante WHERE persona_id = p_participante_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese participante.';
+  END IF;
+  START TRANSACTION;
+  UPDATE participante SET
+    numero_becado  = COALESCE(p_numero_becado, numero_becado),
+    grupo_beca     = COALESCE(p_grupo_beca, grupo_beca),
+    trabajadora_id = COALESCE(fn_usuario(p_trabajadora), trabajadora_id)
+  WHERE persona_id = p_participante_id;
+  IF p_patrocinadores IS NOT NULL THEN
+    -- cierra las becas que ya no aparecen y abre las nuevas
+    UPDATE participante_beca b JOIN cat_patrocinador cp ON cp.id = b.patrocinador_id
+       SET b.hasta = GREATEST(b.desde, CURDATE())
+     WHERE b.participante_id = p_participante_id AND b.hasta IS NULL AND NOT FIND_IN_SET(cp.nombre, REPLACE(p_patrocinadores, '/', ','));
+    INSERT IGNORE INTO participante_beca (participante_id, patrocinador_id, desde)
+    SELECT p_participante_id, cp.id, CURDATE() FROM cat_patrocinador cp
+     WHERE FIND_IN_SET(cp.nombre, REPLACE(p_patrocinadores, '/', ','))
+       AND NOT EXISTS (SELECT 1 FROM participante_beca b WHERE b.participante_id = p_participante_id AND b.patrocinador_id = cp.id AND b.hasta IS NULL);
+  END IF;
+  IF p_aviso_firmado IS NOT NULL THEN
+    UPDATE familia f JOIN participante pt ON pt.familia_id = f.id SET f.aviso_privacidad = p_aviso_firmado WHERE pt.persona_id = p_participante_id;
+  END IF;
+  COMMIT;
 END //
 
 -- Eliminar una visita (por id de la base o por el id que le dio el teléfono)

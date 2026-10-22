@@ -14,7 +14,7 @@ Toda la lógica está en SQL: la aplicación (Java o la página web) solo hace `
 | `04_procedimientos.sql` | Altas, bajas, reactivaciones, edición, guardar visitas del teléfono y reportes |
 | `05_triggers.sql` | Validaciones que dependen de la fecha de hoy o de otros renglones, y la bitácora de cambios |
 | `06_carga_excel.sql` | Tablas de paso y procedimientos para pasar los Excel actuales a la base |
-| `07_pruebas.sql` | 45 pruebas automáticas; al final muestra cuáles pasaron |
+| `07_pruebas.sql` | 50 pruebas automáticas; al final muestra cuáles pasaron |
 | `08_seguridad.sql` | Usuario de la aplicación con permisos mínimos (cambie las contraseñas) |
 
 ```bash
@@ -24,7 +24,7 @@ mysql -u root -p < 02_catalogos.sql
 mysql -u root -p < 03_funciones_vistas.sql
 mysql -u root -p < 04_procedimientos.sql
 mysql -u root -p < 05_triggers.sql
-mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 45 pasaron, 0 fallaron
+mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 50 pasaron, 0 fallaron
 mysql -u root -p < 08_seguridad.sql
 ```
 
@@ -74,7 +74,7 @@ El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunt
 
 **Vistas (lectura):** `v_activo`, `v_baja`, `v_historico`, `v_familiar`, `v_participante`, `v_visita_resumen`, `v_familia_actual`, `v_respuesta`.
 
-**Procedimientos (escritura):** `sp_alta_participante`, `sp_actualizar_persona`, `sp_guardar_familiar`, `sp_guardar_escolaridad`, `sp_registrar_baja`, `sp_reactivar`, `sp_guardar_visita`, `sp_eliminar_visita`.
+**Procedimientos (escritura):** `sp_alta_participante`, `sp_actualizar_persona`, `sp_guardar_familiar`, `sp_guardar_escolaridad`, `sp_datos_programa` (no. de becado, grupo de beca, trabajadora social, becas y aviso de privacidad), `sp_registrar_baja`, `sp_reactivar`, `sp_guardar_visita`, `sp_eliminar_visita`.
 
 **Reportes:**
 - `sp_estadisticas_mes(año, mes)` reproduce la hoja "ESTADÍSTICAS". Cuenta a quienes estaban activos el último día del mes, con la edad que tenían ese día, así que se puede sacar cualquier mes pasado.
@@ -82,7 +82,7 @@ El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunt
 - `sp_visitas_tabla(desde, hasta)` da una fila por visita y una columna por pregunta, para exportar.
 - `sp_buscar(texto, límite)` busca sin importar acentos ni mayúsculas.
 
-`sp_guardar_visita` recibe el mismo objeto que guarda la página en el teléfono (`{"id","est","mod","d":{...}}`). Si llega dos veces no se duplica, y si llega una copia más vieja no borra la más nueva.
+`sp_guardar_visita` recibe el mismo objeto que guarda la página en el teléfono (`{"id","est","mod","d":{...}}`). Si llega dos veces no se duplica, y si llega una copia más vieja no borra la más nueva. También actualiza los datos del participante que trae la visita (género, fecha de nacimiento, CURP, teléfono, carrera u oficio, becas) y el correo y aviso de privacidad de la familia.
 
 ### Desde Java
 
@@ -94,10 +94,12 @@ try (Connection c = DriverManager.getConnection(url, "mese_app", pass)) {
     ResultSet rs = c.createStatement().executeQuery("SELECT * FROM v_activo ORDER BY nombre_completo");
 
     // Escribir
-    CallableStatement cs = c.prepareCall("{call sp_registrar_baja(?, ?, ?, ?, ?, ?)}");
+    CallableStatement cs = c.prepareCall("{call sp_registrar_baja(?, ?, ?, ?, ?, ?, ?, ?, ?)}");
     cs.setInt(1, personaId); cs.setDate(2, Date.valueOf(fecha));
     cs.setString(3, "Cambio de domicilio"); cs.setString(4, "Continúa estudiando");
     cs.setNull(5, Types.VARCHAR); cs.setString(6, motivo);
+    cs.setString(7, "Certificado de secundaria");                     // certificado (o null)
+    cs.setString(8, "Económico/Emocional"); cs.setString(9, "Medio");  // riesgo al egreso (o null)
     cs.execute();
 } catch (SQLException e) {
     if ("45000".equals(e.getSQLState())) mostrarAlUsuario(e.getMessage()); // mensajes ya escritos en español

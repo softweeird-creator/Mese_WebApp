@@ -85,7 +85,13 @@ details.rep summary{font-weight:700;color:var(--az);cursor:pointer;min-height:44
 </style></head><body>
 <nav id="nav" aria-label="Menú"></nav><main id="main"></main>
 <dialog id="dl"><form id="bf"><h2>Dar de baja</h2><p id="bn"></p><p>Pasará al panel “Bajas”. Sus datos no se borran y podrá reactivarlo.</p>
-<div><label for="bm">Motivo</label><select id="bm"><option>Cambio de domicilio</option><option>Falta de asistencia</option><option>Concluyó</option><option>Otro</option></select></div>
+<div><label for="bm">Causa de baja</label><select id="bm" required></select></div>
+<div><label for="be">Causa de baja estadística</label><select id="be"></select></div>
+<div><label for="bx">Caso de éxito (nivel con el que concluyó)</label><select id="bx"></select></div>
+<div><label for="bct">Certificado o documento de terminación</label><select id="bct"></select></div>
+<div><label for="brt">Riesgo detectado al egreso</label><select id="brt"></select></div>
+<div><label for="brn">Nivel de riesgo al egreso</label><select id="brn"></select></div>
+<div><label for="bmo">Motivo de salida (explicación de trabajo social)</label><textarea id="bmo" rows="3"></textarea></div>
 <div><label for="bd">Fecha de baja</label><input id="bd" type="date" required></div>
 <div class="gu"><button type="button" class="btn sec" id="bc">Cancelar</button><button class="btn ro">Confirmar baja</button></div></form></dialog>
 <dialog id="pv"><div class="gu"><button class="btn sec" data-x>Cerrar</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div id="pvb" class="hj"></div></dialog><div id="hoja" class="hj"></div><div id="ok" hidden></div>
@@ -100,28 +106,47 @@ const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const GN=['Mujer','Hombre'],NV=['Primaria','Secundaria','Bachillerato','Licenciatura'];
 const FY={k:'y',l:'Año de ingreso',t:'n'};
+const PAT=['Repsol','Soriana','Bécalos','MESE','General'],TUR=['Matutino','Vespertino','Tiempo completo','Mixto'],TUT=['Madre','Padre','Tutor'];
+const PAR=[...TUT,'Hermano(a)','Abuelo(a)','Bisabuelo(a)','Tío(a)','Primo(a)','Sobrino(a)','Cuñado(a)','Otro'],RES=['Caso de éxito','No concluyó','Sigue activo'];
+const CB=['Abandono de estudios','Desinterés por el apoyo','Concluyó estudios','Cambio de domicilio','Mejoró la situación económica','Inasistencia por distancia','Falta de asistencia','Falta de tiempo y tutor responsable','Se casó','Embarazo','Educación especial','Enfermedad','Otro','Sin registro'];
+const CE=['Continúa estudiando','Deserción escolar / vida laboral','Egreso institucional','Embarazo','Unión libre','Finado','Cambio de residencia','Sin registro'];
+const CX=['Secundaria','Oficio','Carrera técnica','Carrera técnica con bachillerato','Preparatoria','Licenciatura'];
+const CT=['Certificado de secundaria','Boleta final de secundaria','Constancia de terminación de secundaria','Certificado de preparatoria','Certificado de carrera técnica','Constancia de terminación de carrera técnica','Constancia de terminación de oficio','Certificado de licenciatura','Constancia de terminación de licenciatura','Pendiente'];
+const TRI=['Económico','Emocional','Educativo'],NRI=['Bajo','Medio','Alto'],o0=a=>['',...a];
+/* Edad cumplida a partir de "AAAA-MM-DD" y meses entre dos fechas (o hasta hoy) */
+const edad=f=>{const [y,m,d]=String(f).split('-').map(Number),t=new Date();return t.getFullYear()-y-((t.getMonth()+1<m||(t.getMonth()+1==m&&t.getDate()<d))?1:0)};
+const meses=(y1,m1,y2,m2)=>{const t=new Date();y2=y2||t.getFullYear();m2=m2||t.getMonth()+1;return Math.max(0,(y2-y1)*12+m2-m1)};
+const perm=n=>n==null||isNaN(n)?'—':(n>=12?Math.floor(n/12)+(n>=24?' años':' año'):'')+(n%12||n<12?(n>=12?' ':'')+n%12+(n%12==1?' mes':' meses'):'');
 const P={
 activos:{t:'Participantes activos',s:'Quienes hoy asisten a MESE. Incluye el reporte del mes.',add:'Agregar participante',
  f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel de estudios',o:NV},FY,{k:'m',l:'Mes de ingreso',t:'m'}],
- c:[['Nombre',r=>r.n],['Edad',r=>r.ed+' años'],['Escuela',r=>r.nv+' · '+r.gr+'°'],['Ingreso',r=>MES[r.m-1]+' '+r.y]],
- form:[['n','Nombre completo'],['g','Género',GN],['ed','Edad','n'],['nv','Nivel de estudios',NV],['gr','Grado','n'],['esc','Escuela'],['y','Año de ingreso','n'],['m','Mes de ingreso','m'],['mad','Madre o tutora'],['tel','Teléfono'],['col','Colonia']],act:['edit','baja']},
-historico:{t:'Registro histórico',s:'Todas las personas que han pasado por MESE.',
- f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Último nivel',o:NV},FY,{k:'res',l:'Cómo terminó',o:['Caso de éxito','No concluyó','Sigue activo']}],
- c:[['Nombre',r=>r.n],['Último nivel',r=>r.nv],['Ingreso',r=>r.y],['Resultado',r=>r.res]],act:[]},
-familiares:{t:'Familiares',s:'Madres, padres y tutores de los participantes.',add:'Agregar familiar',
- f:[{k:'par',l:'Parentesco',o:['Madre','Padre','Tutor']},{k:'esl',l:'Escolaridad',o:['Hasta primaria','Secundaria','Preparatoria o más']},{k:'oc',l:'Ocupación',o:['Empleo','Comercio','Hogar']},{k:'ing',l:'Ingreso mensual',o:['Menos de $5,000','$5,000 a $8,000','Más de $8,000']}],
+ c:[['Nombre',r=>r.n],['Edad',r=>r.ed+' años'],['Escuela',r=>r.nv+' · '+r.gr+'°'],['Ingreso',r=>MES[r.m-1]+' '+r.y],['Permanencia',r=>perm(meses(r.y,r.m))]],
+ form:[['n','Nombre completo'],['curp','CURP','curp'],['fn','Fecha de nacimiento','d'],['g','Género',GN],['ed','Edad (con fecha de nacimiento se calcula sola)','n'],['sangre','Tipo de sangre',o0(['O+','O−','A+','A−','B+','B−','AB+','AB−','No sabe'])],
+  ['nv','Nivel de estudios',NV],['gr','Grado','n'],['esc','Escuela'],['car','Carrera u oficio'],['grp','Grupo'],['tur','Turno',o0(TUR)],
+  ['y','Año de ingreso','n'],['m','Mes de ingreso','m'],['ts','Trabajadora social asignada'],['nb','No. de becado en la familia','n'],['gb','Grupo de beca','n'],['pat','Beca (patrocinador)',o0(PAT)],
+  ['mad','Madre o tutora'],['tel','Teléfono de la madre o tutora','tel'],['telp','Teléfono del participante','tel'],['mail','Correo electrónico','e'],['col','Colonia'],['av','Aviso de privacidad',['Pendiente','Firmado']]],act:['edit','baja']},
+historico:{t:'Registro histórico',s:'Todas las personas que han pasado por MESE.',add:'Agregar registro',
+ f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Último nivel',o:NV},FY,{k:'res',l:'Cómo terminó',o:RES},{k:'cb',l:'Causa de baja',o:CB}],
+ c:[['Nombre',r=>r.n],['Último nivel',r=>r.nv],['Ingreso',r=>r.y],['Salida',r=>r.fs?fd(r.fs):'—'],['Permanencia',r=>r.fe&&r.fs?perm(meses(+r.fe.slice(0,4),+r.fe.slice(5,7),+r.fs.slice(0,4),+r.fs.slice(5,7))):'—'],['Resultado',r=>r.res]],
+ form:[['n','Nombre completo'],['g','Género',GN],['ci','Ciclo escolar (ej. 2023-2024)'],['fam','No. de familia (FAM)'],['fe','Fecha de entrada','d'],['fs','Fecha de salida','d'],['eei','Edad al entrar','n'],['ees','Edad al salir','n'],
+  ['nvi','Escolaridad inicial',NV],['gri','Grado inicial','n'],['nv','Escolaridad final',NV],['gr','Grado final','n'],['esc','Escuela'],
+  ['res','Cómo terminó',RES],['cx','Caso de éxito (nivel con el que concluyó)',o0(CX)],['ct','Certificado o documento de terminación',o0(CT)],
+  ['rti','Riesgo detectado al ingreso',o0(TRI)],['rni','Nivel de riesgo al ingreso',o0(NRI)],['rte','Riesgo detectado al egreso',o0(TRI)],['rne','Nivel de riesgo al egreso',o0(NRI)],
+  ['cb','Causa de baja',o0(CB)],['ce','Causa de baja estadística',o0(CE)],['mo','Motivo de salida','ta'],['dir','Dirección'],['col','Colonia'],['tel','Teléfono','tel']],act:['edit']},
+familiares:{t:'Familiares',s:'Madres, padres, tutores y demás familiares de los participantes.',add:'Agregar familiar',
+ f:[{k:'par',l:'Parentesco',o:PAR},{k:'esl',l:'Escolaridad',o:['Hasta primaria','Secundaria','Preparatoria o más']},{k:'oc',l:'Ocupación',o:['Empleo','Comercio','Hogar']},{k:'ing',l:'Ingreso mensual',o:['Menos de $5,000','$5,000 a $8,000','Más de $8,000']}],
  c:[['Nombre',r=>r.n],['Participante',r=>r.hijo],['Ocupación',r=>r.oc],['Teléfono',r=>r.tel]],
- form:[['n','Nombre completo'],['par','Parentesco',['Madre','Padre','Tutor']],['hijo','Participante a su cargo'],['esl','Escolaridad',['Hasta primaria','Secundaria','Preparatoria o más']],['oc','Ocupación',['Empleo','Comercio','Hogar']],['ing','Ingreso mensual',['Menos de $5,000','$5,000 a $8,000','Más de $8,000']],['tel','Teléfono'],['g','Género',GN],['ed','Edad','n']],act:['edit']},
+ form:[['n','Nombre completo'],['par','Parentesco',PAR],['hijo','Participante a su cargo'],['esl','Escolaridad',['Hasta primaria','Secundaria','Preparatoria o más']],['oc','Ocupación',['Empleo','Comercio','Hogar']],['ing','Ingreso mensual',['Menos de $5,000','$5,000 a $8,000','Más de $8,000']],['tel','Teléfono','tel'],['g','Género',GN],['fn','Fecha de nacimiento','d'],['ed','Edad (con fecha de nacimiento se calcula sola)','n']],act:['edit']},
 bajas:{t:'Bajas',s:'Participantes que dejaron de asistir. Sus datos se conservan.',
- f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel',o:NV},{k:'mot',l:'Motivo',o:['Cambio de domicilio','Falta de asistencia','Concluyó','Otro']},{k:'mb',l:'Mes de baja',t:'m'},{k:'y',l:'Año de baja',t:'n'}],
- c:[['Nombre',r=>r.n],['Fecha de baja',r=>r.fb],['Motivo',r=>r.mot],['Último grado',r=>r.nv+' · '+r.gr+'°']],act:['react']}};
-P.activos.q='Nombre, escuela, colonia, madre o tutora…';P.historico.q='Nombre, nivel o resultado…';P.familiares.q='Nombre, participante, teléfono…';P.bajas.q='Nombre, motivo o fecha…';
+ f:[{k:'g',l:'Género',o:GN},{k:'nv',l:'Nivel',o:NV},{k:'mot',l:'Causa de baja',o:CB},{k:'ce',l:'Causa estadística',o:CE},{k:'mb',l:'Mes de baja',t:'m'},{k:'y',l:'Año de baja',t:'n'}],
+ c:[['Nombre',r=>r.n],['Fecha de baja',r=>r.fb],['Causa de baja',r=>r.mot],['Causa estadística',r=>r.ce||'—'],['Último grado',r=>r.nv+' · '+r.gr+'°']],act:['react']}};
+P.activos.q='Nombre, escuela, colonia, madre o tutora…';P.historico.q='Nombre, nivel o resultado…';P.familiares.q='Nombre, participante, teléfono…';P.bajas.q='Nombre, causa o fecha…';
 const A=(n,g,ed,nv,gr,y,m,col)=>({n,g,ed,nv,gr,y,m,col,esc:'',mad:'',tel:''});
 const DB={
 activos:[A('Ana Sofía Ramírez Torres','Mujer',10,'Primaria',5,2024,8,'Rosas de Guadalupe'),A('Luis Daniel Pérez Mora','Hombre',14,'Secundaria',2,2024,8,'Rector Díaz Rubio'),A('Camila Herrera Núñez','Mujer',17,'Bachillerato',3,2023,7,'Valle Dorado'),A('Diego Cruz Vega','Hombre',18,'Licenciatura',1,2025,9,'Rosas de Guadalupe'),A('Mateo Salgado Ruiz','Hombre',9,'Primaria',4,2024,8,'Rector Díaz Rubio'),A('Regina Ochoa León','Mujer',13,'Secundaria',1,2025,7,'Valle Dorado'),A('Sofía Barrera Luna','Mujer',11,'Primaria',6,2024,9,'Rosas de Guadalupe'),A('Emilio Cano Ruiz','Hombre',12,'Primaria',6,2024,8,'Valle Dorado')].map((r,i)=>({id:i+1,...r})),
-historico:[['Paola Jiménez Arce','Mujer','Bachillerato',3,2019,'Caso de éxito'],['Erick Barajas Díaz','Hombre','Secundaria',2,2020,'No concluyó'],['Dulce Mendoza Paz','Mujer','Primaria',4,2021,'Sigue activo'],['Iván Orozco Lira','Hombre','Secundaria',3,2019,'Caso de éxito'],['Jimena Solís Cano','Mujer','Licenciatura',2,2020,'Caso de éxito']].map((a,i)=>({id:i+1,n:a[0],g:a[1],nv:a[2],gr:a[3],y:a[4],res:a[5]})),
+historico:[['Paola Jiménez Arce','Mujer','Bachillerato',3,2019,'Caso de éxito'],['Erick Barajas Díaz','Hombre','Secundaria',2,2020,'No concluyó'],['Dulce Mendoza Paz','Mujer','Primaria',4,2021,'Sigue activo'],['Iván Orozco Lira','Hombre','Secundaria',3,2019,'Caso de éxito'],['Jimena Solís Cano','Mujer','Licenciatura',2,2020,'Caso de éxito']].map((a,i)=>({id:i+1,n:a[0],g:a[1],nv:a[2],gr:a[3],y:a[4],res:a[5],fe:a[4]+'-09-01'})),
 familiares:[['Patricia Torres Cervantes','Madre','Ana Sofía','Secundaria','Empleo','$5,000 a $8,000','443 000 0001'],['Javier Pérez Ortiz','Padre','Luis Daniel','Secundaria','Comercio','$5,000 a $8,000','443 000 0002'],['Margarita Núñez Gil','Madre','Camila','Preparatoria o más','Hogar','Menos de $5,000','443 000 0003'],['Rubén Cruz Soto','Padre','Diego','Hasta primaria','Empleo','Más de $8,000','443 000 0004'],['Elena León Vera','Tutor','Regina','Hasta primaria','Hogar','Menos de $5,000','443 000 0005']].map((a,i)=>({id:i+1,n:a[0],par:a[1],hijo:a[2],esl:a[3],oc:a[4],ing:a[5],tel:a[6]})),
-bajas:[['Valeria Medina Soto','Mujer','Primaria',3,'Falta de asistencia','2025-03-12'],['Yohan Arréz Gallegos','Hombre','Primaria',4,'Cambio de domicilio','2024-06-04'],['Brenda Mier Ruiz','Mujer','Bachillerato',3,'Concluyó','2023-07-20']].map((a,i)=>({id:50+i,n:a[0],g:a[1],nv:a[2],gr:a[3],mot:a[4],fb:a[5],mb:+a[5].slice(5,7),y:+a[5].slice(0,4)}))};
+bajas:[['Valeria Medina Soto','Mujer','Primaria',3,'Falta de asistencia','2025-03-12'],['Yohan Arréz Gallegos','Hombre','Primaria',4,'Cambio de domicilio','2024-06-04'],['Brenda Mier Ruiz','Mujer','Bachillerato',3,'Concluyó estudios','2023-07-20']].map((a,i)=>({id:50+i,n:a[0],g:a[1],nv:a[2],gr:a[3],mot:a[4],fb:a[5],mb:+a[5].slice(5,7),y:+a[5].slice(0,4)}))};
 DB.ind=[['Mujer',1],['Hombre',4],['Mujer',7],['Hombre',9],['Mujer',15],['Hombre',22],['Mujer',30]].map(([g,ed])=>({g,ed}));
 DB.familiares.forEach((r,i)=>{r.ed=[38,41,45,52,63][i];r.g=r.par=='Padre'?'Hombre':'Mujer'});
 let nid=100,ed=null,cur='inicio';
@@ -156,7 +181,7 @@ const tb=(t,L,f,m)=>{const F=sm(f),M=sm(m);return `<table><tr><th colspan=4>${t}
 const rt=(t,L,R,a)=>tb(t,L,R.map(x=>inr(a,'Mujer',...x)),R.map(x=>inr(a,'Hombre',...x)));
 const kv=(t,rows)=>`<table><tr><th colspan=2>${t}</th></tr>${rows.map(([k,v])=>`<tr><td>${k}</td><td class="t">${v}</td></tr>`).join('')}</table>`;
 const gt=(t,nv,n,a)=>{const L=[...Array(n)].map((_,i)=>(i+1)+'°'),c=g=>L.map((_,i)=>a.filter(r=>r.nv==nv&&r.g==g&&r.gr==i+1).length);return tb(t,L,c('Mujer'),c('Hombre'))};
-function hoja(rs,m,y){const fam=DB.familiares,ind=DB.ind,hi=DB.historico,ce=hi.filter(r=>r.res=='Caso de éxito'),dir=rs.length,k=n=>ce.filter(r=>r.nv==n).length,ages=[...Array(20)].map((_,i)=>i+5);
+function hoja(rs,m,y){const fam=DB.familiares.filter(r=>TUT.includes(r.par)),ind=[...DB.ind,...DB.familiares.filter(r=>!TUT.includes(r.par))],hi=DB.historico,ce=hi.filter(r=>r.res=='Caso de éxito'),dir=rs.length,k=n=>ce.filter(r=>r.nv==n).length,ages=[...Array(20)].map((_,i)=>i+5);
  const tit=((m?MES[m-1]:'Todos los meses')+(y?' '+y:'')).toUpperCase(),hd=`<div class="hd"><img class="lg" src="${LOGO}" alt="MESE"><h2>ESTADÍSTICAS ${tit}</h2></div>`;
  const h1=`<div class="pg">${hd}<div class="gd"><div>${rt('Participantes directos',['0 A 5','6 A 12','13 A 18','19 A 25'],[[0,5],[6,12],[13,18],[19,25]],rs)}${rt('Padres y/o tutores',['18 A 29','30 A 59','60 +'],[[18,29],[30,59],[60,200]],fam)}${rt('Participantes indirectos',['0 A 2','3 A 5','6 A 12','13 A 18','19 A 25','26 +'],[[0,2],[3,5],[6,12],[13,18],[19,25],[26,200]],ind)}${kv('Totales',[['Participantes directos',dir],['Participantes indirectos',ind.length+fam.length]])}${kv('Base de datos histórica',[['Base de datos histórica',hi.length],['Casos de éxito',ce.length],['Secundaria',k('Secundaria')],['Oficio',0],['Carrera técnica',0],['Car. téc. c/ bachillerato',0],['Preparatoria',k('Bachillerato')],['Licenciatura',k('Licenciatura')],['No concluyeron',hi.filter(r=>r.res=='No concluyó').length]])}</div>
  <div>${rt('Rangos tutores',['18-24','25-49','50-64','65 +'],[[18,24],[25,49],[50,64],[65,200]],fam)}${kv('Otros datos',[['Participantes',dir],['Familias',new Set(fam.map(r=>r.hijo)).size],['Colonias',new Set(rs.map(r=>r.col)).size]])}${kv('Documento de terminación',[['F=',ce.filter(r=>r.g=='Mujer').length],['M=',ce.filter(r=>r.g=='Hombre').length]])}${kv('Menores que han pasado por MESE',[[dir+' + '+hi.length,dir+hi.length]])}</div></div></div>`;
@@ -170,20 +195,23 @@ function route(){const prev=cur;cur=location.hash.slice(1)||'inicio';if(cur=='ed
  $$('.pag').forEach(s=>s.hidden=s.id!=cur);$$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.i==(cur=='editor'?ed.p:cur=='vform'?'visitas':cur)));scrollTo(0,0);if(cur=='vform')requestAnimationFrame(pads)}
 const go=x=>location.hash=x,toast=t=>{const e=$('#ok');e.textContent=t;e.hidden=false;setTimeout(()=>e.hidden=true,2500)};
 function openEd(p,id){const c=P[p],hoy=new Date(),r=id?DB[p].find(x=>x.id==id):{y:hoy.getFullYear(),m:hoy.getMonth()+1};ed={p,id};
- $('#et').textContent=(id?'Editar: ':'Agregar: ')+(p=='activos'?'participante':'familiar');
- $('#eb').innerHTML=c.form.map(([k,l,t])=>`<div><label for="e-${k}">${l}${k=='n'?' *':''}</label>${Array.isArray(t)||t=='m'?`<select id="e-${k}">${opts(t,t=='m'?'m':0,r[k])}</select>`:`<input id="e-${k}" ${k=='y'?YR:`type="${t=='n'?'number':'text'}"`} value="${h(r[k])}"${k=='n'?' required':''}>`}</div>`).join('');go('editor')}
+ $('#et').textContent=(id?'Editar: ':'Agregar: ')+({activos:'participante',familiares:'familiar',historico:'registro histórico'})[p];
+ $('#eb').innerHTML=c.form.map(([k,l,t])=>`<div${t=='ta'?' style="grid-column:1/-1"':''}><label for="e-${k}">${l}${k=='n'?' *':''}</label>${Array.isArray(t)||t=='m'?`<select id="e-${k}">${opts(t,t=='m'?'m':0,r[k])}</select>`:t=='ta'?`<textarea id="e-${k}" rows="3">${h(r[k])}</textarea>`
+  :`<input id="e-${k}" ${k=='y'?YR:`type="${({n:'number',d:'date',e:'email',tel:'tel'})[t]||'text'}"`}${t=='curp'?' maxlength="18" pattern="[A-Za-z]{4}[0-9]{6}[HMhm][A-Za-z]{5}[0-9A-Za-z][0-9]" title="18 letras y números, por ejemplo AUCL160726HMNBSNA5" style="text-transform:uppercase"':''}${t=='tel'?' inputmode="tel"':''} value="${h(r[k])}"${k=='n'?' required':''}>`}</div>`).join('');go('editor')}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(d.pv!==undefined)$('#pv').showModal();else if(d.x!==undefined)$('#pv').close();else if(d.pr)imp(d.pr=='pdf');
  else if(d.add)openEd(d.add);
  else if(d.a=='edit')openEd(d.p,d.id);
- else if(d.a=='baja'){ed={p:'activos',id:+d.id};$('#bn').textContent=DB.activos.find(r=>r.id==d.id).n;$('#dl').showModal()}
+ else if(d.a=='baja'){ed={p:'activos',id:+d.id};$('#bn').textContent=DB.activos.find(r=>r.id==d.id).n;$('#bf').reset();$('#dl').showModal()}
  else if(d.a=='react'){const i=DB.bajas.findIndex(r=>r.id==d.id),r=DB.bajas.splice(i,1)[0];DB.activos.push({...r.o});all();toast('Participante reactivado')}
  else if(d.clr){$$(`#f-${d.clr} [data-k],#q-${d.clr}`).forEach(x=>x.value='');upd(d.clr)}
  else if(d.v){const p=b.closest('section').id;$$('button',b.parentNode).forEach(x=>x.classList.toggle('on',x==b));$('#l-'+p).hidden=d.v!='l';$('#g-'+p).hidden=d.v!='g';$('#f-'+p).hidden=$('#n-'+p).hidden=d.v=='r';if(p=='activos')$('#r-activos').hidden=d.v!='r'}});
 document.addEventListener('input',e=>{if(e.target.closest('#visitas,#vform')||e.target.id=='gq')return;const s=e.target.closest('.fl');if(s)s.id=='f-'+s.id.slice(2)?upd(s.id.slice(2)):repo()});
-$('#ec').onclick=()=>go(ed.p);$('#bc').onclick=()=>$('#dl').close();
-$('#ef').onsubmit=e=>{e.preventDefault();const {p,id}=ed,r=id?DB[p].find(x=>x.id==id):{id:++nid};P[p].form.forEach(([k,,t])=>{const v=$('#e-'+k).value;r[k]=t=='n'||t=='m'?+v:v});if(!id)DB[p].push(r);all();toast(id?'Cambios guardados':'Registro agregado');go(p)};
-$('#bf').onsubmit=e=>{e.preventDefault();const i=DB.activos.findIndex(r=>r.id==ed.id),r=DB.activos.splice(i,1)[0],fb=$('#bd').value;DB.bajas.push({id:++nid,n:r.n,g:r.g,nv:r.nv,gr:r.gr,mot:$('#bm').value,fb,mb:+fb.slice(5,7),y:+fb.slice(0,4),o:r});$('#dl').close();all();toast('Baja registrada');};
+$('#ec').onclick=()=>go(ed.p);
+$('#bm').innerHTML=opts(CB);[['be',CE],['bx',CX],['bct',CT],['brt',TRI],['brn',NRI]].forEach(([i,o])=>$('#'+i).innerHTML='<option value="">—</option>'+opts(o));$('#bc').onclick=()=>$('#dl').close();
+$('#ef').onsubmit=e=>{e.preventDefault();const {p,id}=ed,r=id?DB[p].find(x=>x.id==id):{id:++nid};P[p].form.forEach(([k,,t])=>{const v=$('#e-'+k).value.trim();r[k]=t=='m'?+v:t=='n'?(v===''?'':+v):t=='curp'?v.toUpperCase():v});
+ if(r.fn)r.ed=edad(r.fn);if(p=='historico'&&r.fe){r.y=+r.fe.slice(0,4);if(r.fs&&r.eei!==''&&r.ees==='')r.ees=r.eei+Math.floor(meses(r.y,+r.fe.slice(5,7),+r.fs.slice(0,4),+r.fs.slice(5,7))/12)}if(!id)DB[p].push(r);all();toast(id?'Cambios guardados':'Registro agregado');go(p)};
+$('#bf').onsubmit=e=>{e.preventDefault();const i=DB.activos.findIndex(r=>r.id==ed.id),r=DB.activos.splice(i,1)[0],fb=$('#bd').value;DB.bajas.push({id:++nid,n:r.n,g:r.g,nv:r.nv,gr:r.gr,mot:$('#bm').value,ce:$('#be').value,cx:$('#bx').value,ct:$('#bct').value,rte:$('#brt').value,rne:$('#brn').value,mo:$('#bmo').value.trim(),fb,mb:+fb.slice(5,7),y:+fb.slice(0,4),o:r});$('#dl').close();all();toast('Baja registrada');};
 /* ================= VISITAS DOMICILIARIAS (Seguimiento familiar) ================= */
 const SN=['Sí','No'],ADI=['Alcoholismo','Tabaquismo','Drogadicción','Ninguno'],QV=['Madre','Padre','Ambos','Hijos','Ninguno'];
 const AP=[['ap_bj','Becas Benito Juárez / Rita Cetina','Becas B. Juárez / R. Cetina'],['ap_am','Programa para el Bienestar de las Personas Adultas Mayores','Adultos mayores'],['ap_dis','Pensión para el Bienestar de las Personas con Discapacidad','Discapacidad'],['ap_lic','Liconsa','Liconsa'],['ap_ot','Monto del otro apoyo','Otro apoyo']];
@@ -197,9 +225,13 @@ const VS=[
 {t:'1. Información del participante',f:[
  {t:'bus',l:'¿Ya está registrado en MESE? Búsquelo para llenar sus datos'},
  {k:'ap_p',l:'Apellido paterno',t:'tx',r:1},{k:'ap_m',l:'Apellido materno',t:'tx'},{k:'nom',l:'Nombre(s)',t:'tx',r:1},{k:'edad',l:'Edad',t:'nu'},
+ {k:'fnac',l:'Fecha de nacimiento',t:'dt'},{k:'curp',l:'CURP',t:'tx'},{k:'gen',l:'Género',t:'ra',o:GN},
  {k:'esc',l:'Escuela',t:'tx'},{k:'grado',l:'Grado',t:'tx'},{k:'grupo',l:'Grupo',t:'tx'},{k:'turno',l:'Turno',t:'ra',o:['Matutino','Vespertino','Tiempo completo','Mixto']},
+ {k:'carrera',l:'Carrera u oficio',t:'tx'},
  {k:'beca',l:'Tipo de beca',t:'ck',o:['MESE','BBVA','Especial','No tengo']},
+ {k:'pat',l:'Beca MESE (patrocinador)',t:'ck',o:PAT},
  {k:'sangre',l:'Tipo de sangre',t:'sel',o:['O+','O−','A+','A−','B+','B−','AB+','AB−','No sabe']},
+ {k:'tel_p',l:'Teléfono del participante',t:'tel'},{k:'mail',l:'Correo electrónico de la familia',t:'tx',im:'email'},
  {h:'Domicilio'},
  {k:'calle',l:'Calle',t:'tx'},{k:'next',l:'Nº exterior',t:'tx'},{k:'col',l:'Colonia',t:'tx',dl:'dl-col'},{k:'cp',l:'C.P.',t:'tx',im:'numeric'},
  {k:'mun',l:'Municipio',t:'tx'},{k:'tel_t',l:'Teléfono del tutor',t:'tel'},
@@ -210,7 +242,7 @@ const VS=[
  {tot:'ingreso',l:'Ingreso total mensual'}]},
 {t:'3. Apoyos gubernamentales',d:'Escriba el monto mensual de cada apoyo que recibe la familia. Deje en blanco los que no recibe.',f:[
  ...AP.slice(0,4).map(([k,l])=>({k,l,t:'mo',w:1})),{k:'ap_ot_n',l:'Otro apoyo (especifique)',t:'tx'},{k:'ap_ot',l:'Monto del otro apoyo',t:'mo'},
- {tot:'apoyos',l:'Total de apoyos'}]},
+ {tot:'apoyos',l:'Total de apoyos'},{tot:'diario',l:'Ingreso diario por integrante (ingresos + apoyos ÷ integrantes ÷ 30)'}]},
 {t:'4. Vivienda',f:[
  {k:'casa',l:'Su casa es',t:'ra',o:['Propia','Rentada','Prestada','Irregular','Compartida']},
  {k:'serv',l:'¿Cuenta con los siguientes servicios o equipamiento?',t:'ck',o:['Agua','Luz','Drenaje','Computadora','Internet']},
@@ -263,14 +295,22 @@ const VS=[
  {h:'Egreso mensual'},
  ...EG.map(([k,l])=>({k,l,cl:'Egreso: '+l,t:'mo'})),
  {tot:'egreso',l:'Egreso total mensual'},{tot:'balance',l:'Ingresos + apoyos − egresos'}]},
+{t:'Valoración de trabajo social',n:'Valoración',d:'La llena la trabajadora social con lo que observó en la visita.',f:[
+ {k:'nivel_pobreza',l:'Nivel de pobreza',t:'ra',o:['Pobreza extrema','Pobreza','Media']},
+ {k:'despensa',l:'Despensa asignada',t:'ra',o:['SIMI 1','SIMI 2']},
+ {k:'dx_nutricional',l:'Diagnóstico nutricional del participante',t:'sel',o:['Sano','Sano con riesgo','Bajo peso','Sobrepeso','Obesidad','Desnutrición','Desnutrición moderada','Desnutrición severa']},
+ {k:'hacinamiento',l:'Nivel de hacinamiento',t:'ra',o:['Nulo','Bajo','Medio','Alto']},
+ {k:'terreno',l:'Situación del terreno',t:'ra',o:['Regular','Irregular','Ejido']},
+ {k:'serv_colonia',l:'Servicios en la colonia',t:'ra',o:['Completos','Incompletos']}]},
 {t:'Diagnóstico social y firmas',n:'Firmas',f:[
  {k:'verif',l:'Se verificó la información anterior con visita en',t:'ra',o:['Visita domiciliaria','Oficina']},
  {k:'diag',l:'Diagnóstico social',t:'ta',rows:6},
  {k:'f_ts_n',l:'Nombre de la trabajadora social',t:'tx',w:1},{k:'f_ts',l:'Firma de la trabajadora social',t:'sig'},
- {k:'f_tu_n',l:'Nombre de la madre o tutor',t:'tx',w:1},{k:'f_tu',l:'Firma de la madre o tutor',t:'sig'}]}];
+ {k:'f_tu_n',l:'Nombre de la madre o tutor',t:'tx',w:1},{k:'f_tu',l:'Firma de la madre o tutor',t:'sig'},
+ {k:'aviso',l:'Aviso de privacidad',t:'ra',o:['Firmado','Pendiente'],w:1}]}];
 const VFS=VS.flatMap((s,i)=>s.f.map(f=>({...f,s:i}))),REQ=VFS.filter(f=>f.r);
 const num=v=>+v||0,money=n=>'$'+(+n||0).toLocaleString('es-MX',{maximumFractionDigits:2});
-const TOT={ingreso:d=>sm((d.fam||[]).map(r=>num(r.ing))),apoyos:d=>sm(AP.map(([k])=>num(d[k]))),egreso:d=>sm(EG.map(([k])=>num(d[k]))),balance:d=>TOT.ingreso(d)+TOT.apoyos(d)-TOT.egreso(d)};
+const TOT={ingreso:d=>sm((d.fam||[]).map(r=>num(r.ing))),apoyos:d=>sm(AP.map(([k])=>num(d[k]))),egreso:d=>sm(EG.map(([k])=>num(d[k]))),diario:d=>{const n=(d.fam||[]).length;return n?(TOT.ingreso(d)+TOT.apoyos(d))/n/30:0},balance:d=>TOT.ingreso(d)+TOT.apoyos(d)-TOT.egreso(d)};
 const vnm=d=>[d.nom,d.ap_p,d.ap_m].filter(Boolean).join(' ')||'(sin nombre)';
 const fd=s=>s?String(s).split('-').reverse().join('/'):'—';
 const hoyISO=()=>new Date().toLocaleDateString('en-CA');
@@ -366,6 +406,8 @@ function vsave(fin){const d=vget();if(fin&&!vval(d))return;
 function vbus(v){const p=DB.activos.find(r=>nq(r.n)==nq(v));if(!p)return;const w=p.n.split(/\s+/),set=(k,x)=>{if(x!=null&&x!==''){const e=$('#v-'+k);if(e)e.value=x}};
  set('ap_m',w.length>2?w.pop():'');set('ap_p',w.length>1?w.pop():'');set('nom',w.join(' '));
  set('edad',p.ed);set('esc',p.esc||p.nv);set('grado',p.gr);set('col',p.col);set('tel_t',p.tel);set('ing_m',p.m);set('ing_y',p.y);
+ set('fnac',p.fn);set('curp',p.curp);set('carrera',p.car);set('grupo',p.grp);set('tel_p',p.telp);set('mail',p.mail);set('sangre',p.sangre);
+ [['gen',p.g],['turno',p.tur],['pat',p.pat],['aviso',p.av]].forEach(([k,x])=>{const e=x&&$$(`#vf input[name="${k}"]`).find(i=>i.value==x);if(e)e.checked=true});
  vdirty=true;vauto();toast('Datos de '+p.n+' cargados')}
 function vgps(){if(!navigator.geolocation)return toast('Este dispositivo no permite obtener la ubicación');const b=$('[data-vgps]'),done=()=>{b.disabled=false;b.textContent='Guardar ubicación actual'};b.disabled=true;b.textContent='Buscando ubicación…';
  navigator.geolocation.getCurrentPosition(p=>{$('#v-gps').value=p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);gpsT();vdirty=true;vauto();done()},()=>{toast('No se pudo obtener la ubicación. Revise que el GPS esté encendido y dé permiso.');done()},{enableHighAccuracy:true,timeout:20000,maximumAge:60000})}
@@ -506,7 +548,7 @@ function vxls(list,name){if(!list.length)return toast('No hay visitas para expor
  const base=[['Fecha de la visita','d',x=>x.r.d.fecha],['Participante','s',x=>vnm(x.r.d)],['Colonia','s',x=>x.r.d.col]];
  XL([
   {nombre:'Visitas',tabla:'Visitas',fijas:2,filas:L,cols:[['Fecha de la visita','d',r=>r.d.fecha],['Participante','s',r=>vnm(r.d)],['Estado','s',r=>r.est],...campos,
-   ['Nº de integrantes','n',r=>(r.d.fam||[]).length],['Ingreso familiar total','$',r=>TOT.ingreso(r.d)],['Total de apoyos','$',r=>TOT.apoyos(r.d)],['Egreso mensual total','$',r=>TOT.egreso(r.d)],['Ingresos + apoyos − egresos','$',r=>TOT.balance(r.d)],
+   ['Nº de integrantes','n',r=>(r.d.fam||[]).length],['Ingreso familiar total','$',r=>TOT.ingreso(r.d)],['Total de apoyos','$',r=>TOT.apoyos(r.d)],['Ingreso diario por integrante','$',r=>TOT.diario(r.d)],['Egreso mensual total','$',r=>TOT.egreso(r.d)],['Ingresos + apoyos − egresos','$',r=>TOT.balance(r.d)],
    ['Firma trabajadora social','s',r=>r.d.f_ts?'Sí':'No'],['Firma madre o tutor','s',r=>r.d.f_tu?'Sí':'No'],['Capturada el','dt',r=>r.cr],['Última modificación','dt',r=>r.mod],['Folio interno','s',r=>r.id]]},
   {nombre:'Integrantes de la familia',tabla:'Integrantes',fijas:2,filas:sub('fam'),cols:[...base.slice(0,2),['Nombre del integrante','s',x=>x.o.n],['Edad','n',x=>x.o.ed],['Fecha de nacimiento','d',x=>x.o.fn],['Estado civil','s',x=>x.o.ec],['Teléfono','s',x=>x.o.tel],['Parentesco','s',x=>x.o.par],['Escolaridad','s',x=>x.o.esc],['Ocupación','s',x=>x.o.oc],['Ingreso mensual','$',x=>x.o.ing],base[2],['Folio interno','s',x=>x.r.id]]},
   {nombre:'Antecedentes médicos',tabla:'Antecedentes',fijas:2,filas:sub('ant'),cols:[...base.slice(0,2),['Nombre completo','s',x=>x.o.n],['Parentesco','s',x=>x.o.par],['Enfermedad','s',x=>x.o.enf],['Atención médica','s',x=>x.o.at],base[2],['Folio interno','s',x=>x.r.id]]}
