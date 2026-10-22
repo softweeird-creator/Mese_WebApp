@@ -14,7 +14,7 @@ Toda la lógica está en SQL: la aplicación (Java o la página web) solo hace `
 | `04_procedimientos.sql` | Altas, bajas, reactivaciones, edición, guardar visitas del teléfono y reportes |
 | `05_triggers.sql` | Validaciones que dependen de la fecha de hoy o de otros renglones, y la bitácora de cambios |
 | `06_carga_excel.sql` | Tablas de paso y procedimientos para pasar los Excel actuales a la base |
-| `07_pruebas.sql` | 50 pruebas automáticas; al final muestra cuáles pasaron |
+| `07_pruebas.sql` | 58 pruebas automáticas; al final muestra cuáles pasaron |
 | `08_seguridad.sql` | Usuario de la aplicación con permisos mínimos (cambie las contraseñas) |
 
 ```bash
@@ -24,7 +24,7 @@ mysql -u root -p < 02_catalogos.sql
 mysql -u root -p < 03_funciones_vistas.sql
 mysql -u root -p < 04_procedimientos.sql
 mysql -u root -p < 05_triggers.sql
-mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 50 pasaron, 0 fallaron
+mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 58 pasaron, 0 fallaron
 mysql -u root -p < 08_seguridad.sql
 ```
 
@@ -75,6 +75,8 @@ El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunt
 **Vistas (lectura):** `v_activo`, `v_baja`, `v_historico`, `v_familiar`, `v_participante`, `v_visita_resumen`, `v_familia_actual`, `v_respuesta`.
 
 **Procedimientos (escritura):** `sp_alta_participante`, `sp_actualizar_persona`, `sp_guardar_familiar`, `sp_guardar_escolaridad`, `sp_datos_programa` (no. de becado, grupo de beca, trabajadora social, becas y aviso de privacidad), `sp_registrar_baja`, `sp_reactivar`, `sp_guardar_visita`, `sp_eliminar_visita`.
+
+**Acceso a la página (los usa el servidor de `server/`):** tablas `usuario_acceso` (contraseña cifrada con argon2, aparte de `usuario` para que los reportes no la vean) y `sesion`; vista `v_usuario`; procedimientos `sp_acceso_buscar`, `sp_acceso_registrar`, `sp_sesion_validar`, `sp_sesion_cerrar`, `sp_usuario_guardar`, `sp_usuario_clave`, `sp_usuario_activar`, `sp_usuario_cerrar_sesiones`. `02_catalogos.sql` crea el administrador genérico `admin` / `mese2026`, que debe cambiar su contraseña al entrar.
 
 **Reportes:**
 - `sp_estadisticas_mes(año, mes)` reproduce la hoja "ESTADÍSTICAS". Cuenta a quienes estaban activos el último día del mes, con la edad que tenían ese día, así que se puede sacar cualquier mes pasado.

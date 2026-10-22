@@ -215,3 +215,13 @@ JOIN (SELECT familia_id, MAX(fecha) AS fecha FROM visita WHERE estado = 'COMPLET
   ON ult.familia_id = vr.familia_id AND ult.fecha = vr.fecha
 WHERE vr.estado = 'COMPLETA'
   AND vr.visita_id = (SELECT MAX(v2.id) FROM visita v2 WHERE v2.familia_id = vr.familia_id AND v2.fecha = vr.fecha AND v2.estado = 'COMPLETA');
+
+-- ---------------------------------------------------------------------
+-- Usuarios de la página (sin contraseñas) para la pantalla de administración
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_usuario AS
+SELECT u.id, u.nombre, u.correo, u.rol, u.activo, a.login, COALESCE(a.debe_cambiar, FALSE) AS debe_cambiar,
+       a.ultimo_acceso, COALESCE(a.bloqueado_hasta > NOW(), FALSE) AS bloqueado,
+       (SELECT COUNT(*) FROM sesion s WHERE s.usuario_id = u.id AND s.cerrada_en IS NULL) AS sesiones_abiertas
+FROM usuario u
+JOIN usuario_acceso a ON a.usuario_id = u.id;

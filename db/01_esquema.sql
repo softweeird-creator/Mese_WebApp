@@ -28,7 +28,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS bitacora, visita_firma, visita_antecedente, visita_monto, visita_vacuna,
   visita_respuesta, visita_integrante, visita, cat_opcion, cat_pregunta, cat_seccion,
   participante_beca, participante_escolaridad, inscripcion_riesgo, inscripcion, participante,
-  familia_integrante, familia, persona, usuario, cat_rango_edad, cat_concepto_monto, cat_vacuna,
+  familia_integrante, familia, persona, sesion, usuario_acceso, usuario, cat_rango_edad, cat_concepto_monto, cat_vacuna,
   cat_tipo_riesgo, cat_nivel_riesgo, cat_certificado, cat_caso_exito, cat_causa_baja_estadistica,
   cat_causa_baja, cat_patrocinador, cat_turno, cat_ciclo_escolar, cat_carrera, cat_escuela,
   cat_nivel_grado, cat_nivel_educativo, cat_tipo_sangre, cat_estado_civil, cat_ocupacion,
@@ -204,6 +204,33 @@ CREATE TABLE usuario (
   rol       VARCHAR(20)  NOT NULL DEFAULT 'TRABAJO_SOCIAL',
   activo    BOOLEAN NOT NULL DEFAULT TRUE,
   CONSTRAINT ck_usuario_rol CHECK (rol IN ('TRABAJO_SOCIAL','COORDINACION','ADMIN'))
+) ENGINE=InnoDB;
+
+-- Acceso a la página: usuario y contraseña. Va en una tabla aparte para que
+-- quien solo puede leer "usuario" (reportes) nunca vea las contraseñas.
+CREATE TABLE usuario_acceso (
+  usuario_id         SMALLINT UNSIGNED PRIMARY KEY,
+  login              VARCHAR(40)  NOT NULL UNIQUE,      -- con lo que entra: "admin", "mlopez"
+  clave_hash         VARCHAR(255) NOT NULL,             -- argon2id; nunca la contraseña real
+  debe_cambiar       BOOLEAN NOT NULL DEFAULT TRUE,     -- contraseña temporal puesta por el administrador
+  intentos_fallidos  TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  bloqueado_hasta    DATETIME NULL,                     -- tras 5 intentos fallidos, 15 minutos
+  ultimo_acceso      DATETIME NULL,
+  CONSTRAINT ck_acceso_login CHECK (login REGEXP '^[a-z0-9._-]{3,40}$'),
+  CONSTRAINT fk_acceso_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Sesiones abiertas. Duran hasta que la persona sale o el administrador las cierra.
+CREATE TABLE sesion (
+  token_hash   CHAR(64) PRIMARY KEY,                    -- SHA-256 del valor de la cookie
+  usuario_id   SMALLINT UNSIGNED NOT NULL,
+  creada       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ultimo_uso   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  dispositivo  VARCHAR(200) NULL,
+  ip           VARCHAR(45) NULL,
+  cerrada_en   DATETIME NULL,
+  KEY ix_sesion_usuario (usuario_id, cerrada_en),
+  CONSTRAINT fk_sesion_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------

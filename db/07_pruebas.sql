@@ -135,6 +135,27 @@ BEGIN
                             WHERE b.participante_id = v_p AND b.hasta IS NULL), numero_becado, grupo_beca) FROM participante WHERE persona_id = v_p));
   CALL _probar('Visita terminada sin nombre se rechaza', 'ERROR', "CALL sp_guardar_visita('{\"id\":\"zzprueba-uuid-2\",\"est\":\"Completa\",\"d\":{\"fecha\":\"2026-01-01\"}}', NULL)");
 
+  -- ---- Acceso a la página ----
+  CALL sp_usuario_guardar(NULL, 'Usuaria Zzprueba', 'zzprueba', NULL, 'TRABAJO_SOCIAL', 'hash-de-prueba', @u);
+  CALL _probar('Usuario repetido se rechaza', 'ERROR', "CALL sp_usuario_guardar(NULL, 'Otra', 'zzprueba', NULL, 'TRABAJO_SOCIAL', 'x', @u2)");
+  CALL _probar('Usuario con espacios o acentos se rechaza', 'ERROR', "CALL sp_usuario_guardar(NULL, 'Otra', 'maría lópez', NULL, 'TRABAJO_SOCIAL', 'x', @u2)");
+  CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL); CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL);
+  CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL); CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL);
+  CALL _afirmar('Acceso: 4 intentos fallidos aún no bloquean', '0', (SELECT CAST(bloqueado AS CHAR) FROM v_usuario WHERE id = @u));
+  CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL);
+  CALL _afirmar('Acceso: el 5º intento fallido bloquea 15 minutos', '1', (SELECT CAST(bloqueado AS CHAR) FROM v_usuario WHERE id = @u));
+  CALL sp_acceso_registrar(@u, TRUE, REPEAT('a', 64), 'Prueba', '127.0.0.1');
+  CALL sp_acceso_registrar(@u, TRUE, REPEAT('b', 64), 'Prueba', '127.0.0.1');
+  CALL _afirmar('Acceso: entrar desbloquea y abre sesiones', '0 2', (SELECT CONCAT(bloqueado, ' ', sesiones_abiertas) FROM v_usuario WHERE id = @u));
+  CALL sp_usuario_clave(@u, 'hash-nuevo', FALSE, REPEAT('a', 64));
+  CALL _afirmar('Acceso: cambiar la contraseña cierra las otras sesiones', '1', (SELECT CAST(sesiones_abiertas AS CHAR) FROM v_usuario WHERE id = @u));
+  CALL sp_sesion_cerrar(REPEAT('a', 64));
+  CALL _afirmar('Acceso: salir cierra la sesión (ya no se reconoce)', '0',
+    (SELECT CAST(COUNT(*) AS CHAR) FROM sesion WHERE token_hash = REPEAT('a', 64) AND cerrada_en IS NULL));
+  CALL _probar('No se puede desactivar al último administrador', 'ERROR',
+    CONCAT('CALL sp_usuario_activar(', (SELECT id FROM v_usuario WHERE login = 'admin'), ', FALSE)'));
+  DELETE FROM usuario WHERE id = @u;
+
   -- ---- Reportes ----
   CALL _probar('Estadísticas del mes se generan', 'OK', CONCAT('CALL sp_estadisticas_mes(', YEAR(CURDATE()), ',', MONTH(CURDATE()), ')'));
   CALL _probar('Reporte de visitas se genera', 'OK', 'CALL sp_reporte_visitas(NULL, NULL, NULL, NULL)');
@@ -151,7 +172,7 @@ BEGIN
   DELETE FROM familia_integrante WHERE familia_id = v_fam;
   DELETE FROM persona WHERE nombre_completo LIKE '%Zzprueba%' OR nombres LIKE 'Abuela Rosa%';
   DELETE FROM familia WHERE id = v_fam;
-  DELETE FROM usuario WHERE nombre = 'Trabajadora Zzprueba';
+  DELETE FROM usuario WHERE nombre IN ('Trabajadora Zzprueba', 'Usuaria Zzprueba');
   DELETE FROM cat_colonia WHERE nombre = 'Colonia de prueba';
   DELETE FROM cat_escuela WHERE nombre = 'Primaria de prueba';
   DELETE FROM cat_carrera WHERE nombre = 'Carrera Zzprueba';

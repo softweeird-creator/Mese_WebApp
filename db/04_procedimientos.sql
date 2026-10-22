@@ -25,6 +25,14 @@ DROP PROCEDURE IF EXISTS sp_guardar_familiar;
 DROP PROCEDURE IF EXISTS sp_guardar_escolaridad;
 DROP PROCEDURE IF EXISTS sp_eliminar_visita;
 DROP PROCEDURE IF EXISTS sp_datos_programa;
+DROP PROCEDURE IF EXISTS sp_acceso_buscar;
+DROP PROCEDURE IF EXISTS sp_acceso_registrar;
+DROP PROCEDURE IF EXISTS sp_sesion_validar;
+DROP PROCEDURE IF EXISTS sp_sesion_cerrar;
+DROP PROCEDURE IF EXISTS sp_usuario_guardar;
+DROP PROCEDURE IF EXISTS sp_usuario_clave;
+DROP PROCEDURE IF EXISTS sp_usuario_activar;
+DROP PROCEDURE IF EXISTS sp_usuario_cerrar_sesiones;
 
 DELIMITER //
 
@@ -769,6 +777,135 @@ MODIFIES SQL DATA
 BEGIN
   DELETE FROM visita WHERE id = p_visita_id OR (p_uuid IS NOT NULL AND uuid_cliente = p_uuid);
   IF ROW_COUNT() = 0 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se encontró la visita.'; END IF;
+END //
+
+-- =====================================================================
+-- Acceso a la página. El servidor cifra y compara contraseñas (argon2);
+-- la base guarda el resultado, cuenta intentos y lleva las sesiones.
+-- =====================================================================
+
+-- Datos para revisar un inicio de sesión (incluye la contraseña cifrada)
+CREATE PROCEDURE sp_acceso_buscar(IN p_login VARCHAR(40))
+READS SQL DATA
+BEGIN
+  SELECT u.id, u.nombre, u.rol, u.activo, a.login, a.clave_hash, a.debe_cambiar,
+         COALESCE(a.bloqueado_hasta > NOW(), FALSE) AS bloqueado
+  FROM usuario_acceso a JOIN usuario u ON u.id = a.usuario_id
+  WHERE a.login = LOWER(TRIM(p_login));
+END //
+
+-- Resultado de un intento: si fue correcto abre la sesión; si no, cuenta el
+-- intento y tras 5 seguidos bloquea la cuenta 15 minutos.
+CREATE PROCEDURE sp_acceso_registrar(IN p_usuario_id SMALLINT UNSIGNED, IN p_correcto BOOLEAN,
+  IN p_token_hash CHAR(64), IN p_dispositivo VARCHAR(200), IN p_ip VARCHAR(45))
+MODIFIES SQL DATA
+BEGIN
+  IF p_correcto THEN
+    UPDATE usuario_acceso SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = NOW() WHERE usuario_id = p_usuario_id;
+    INSERT INTO sesion (token_hash, usuario_id, dispositivo, ip) VALUES (p_token_hash, p_usuario_id, LEFT(p_dispositivo, 200), p_ip);
+  ELSE
+    UPDATE usuario_acceso
+       SET bloqueado_hasta = IF(intentos_fallidos + 1 >= 5, NOW() + INTERVAL 15 MINUTE, bloqueado_hasta),
+           intentos_fallidos = IF(intentos_fallidos + 1 >= 5, 0, intentos_fallidos + 1)
+     WHERE usuario_id = p_usuario_id;
+  END IF;
+END //
+
+-- Quién está detrás de una cookie. Sin renglones = sesión cerrada o inválida.
+CREATE PROCEDURE sp_sesion_validar(IN p_token_hash CHAR(64))
+MODIFIES SQL DATA
+BEGIN
+  UPDATE sesion SET ultimo_uso = NOW()
+   WHERE token_hash = p_token_hash AND cerrada_en IS NULL AND ultimo_uso < NOW() - INTERVAL 5 MINUTE;
+  SELECT u.id, u.nombre, u.rol, a.login, a.debe_cambiar
+  FROM sesion s JOIN usuario u ON u.id = s.usuario_id JOIN usuario_acceso a ON a.usuario_id = u.id
+  WHERE s.token_hash = p_token_hash AND s.cerrada_en IS NULL AND u.activo;
+END //
+
+CREATE PROCEDURE sp_sesion_cerrar(IN p_token_hash CHAR(64))
+MODIFIES SQL DATA
+BEGIN
+  UPDATE sesion SET cerrada_en = NOW() WHERE token_hash = p_token_hash AND cerrada_en IS NULL;
+END //
+
+-- Alta (p_id NULL) o edición de un usuario. En el alta la contraseña es obligatoria.
+CREATE PROCEDURE sp_usuario_guardar(IN p_id SMALLINT UNSIGNED, IN p_nombre VARCHAR(100), IN p_login VARCHAR(40),
+  IN p_correo VARCHAR(120), IN p_rol VARCHAR(20), IN p_clave_hash VARCHAR(255), OUT p_out SMALLINT UNSIGNED)
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  SET p_login = LOWER(TRIM(p_login)), p_nombre = fn_texto(p_nombre), p_correo = LOWER(fn_texto(p_correo));
+  IF p_nombre IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Escriba el nombre de la persona.'; END IF;
+  IF p_login IS NULL OR NOT p_login REGEXP '^[a-z0-9._-]{3,40}$' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El usuario debe tener de 3 a 40 letras sin acentos, números, punto o guion (ej. mlopez).';
+  END IF;
+  IF p_rol NOT IN ('TRABAJO_SOCIAL', 'COORDINACION', 'ADMIN') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija un rol de la lista.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM usuario_acceso WHERE login = p_login AND usuario_id <> COALESCE(p_id, 0)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese nombre de usuario ya existe; elija otro.';
+  END IF;
+  IF p_correo IS NOT NULL AND EXISTS (SELECT 1 FROM usuario WHERE correo = p_correo AND id <> COALESCE(p_id, 0)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese correo ya lo tiene otro usuario.';
+  END IF;
+  START TRANSACTION;
+  IF p_id IS NULL THEN
+    IF p_clave_hash IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Escriba una contraseña para el nuevo usuario.'; END IF;
+    INSERT INTO usuario (nombre, correo, rol) VALUES (p_nombre, p_correo, p_rol);
+    SET p_id = LAST_INSERT_ID();
+    INSERT INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar) VALUES (p_id, p_login, p_clave_hash, TRUE);
+  ELSE
+    IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_id) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese usuario.'; END IF;
+    IF p_rol <> 'ADMIN' AND (SELECT rol FROM usuario WHERE id = p_id) = 'ADMIN'
+       AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND id <> p_id) = 0 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Debe quedar al menos un administrador activo.';
+    END IF;
+    UPDATE usuario SET nombre = p_nombre, correo = p_correo, rol = p_rol WHERE id = p_id;
+    IF EXISTS (SELECT 1 FROM usuario_acceso WHERE usuario_id = p_id) THEN
+      UPDATE usuario_acceso SET login = p_login WHERE usuario_id = p_id;
+    ELSEIF p_clave_hash IS NOT NULL THEN   -- trabajadora creada por la carga del Excel: se le da acceso
+      INSERT INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar) VALUES (p_id, p_login, p_clave_hash, TRUE);
+    END IF;
+  END IF;
+  COMMIT;
+  SET p_out = p_id;
+END //
+
+-- Cambiar la contraseña. p_debe_cambiar = TRUE cuando la pone el administrador (temporal).
+-- Cierra las demás sesiones del usuario; conserva p_token_conservar (la de quien la cambia).
+CREATE PROCEDURE sp_usuario_clave(IN p_id SMALLINT UNSIGNED, IN p_clave_hash VARCHAR(255), IN p_debe_cambiar BOOLEAN,
+  IN p_token_conservar CHAR(64))
+MODIFIES SQL DATA
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM usuario_acceso WHERE usuario_id = p_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese usuario no tiene acceso a la página.';
+  END IF;
+  UPDATE usuario_acceso SET clave_hash = p_clave_hash, debe_cambiar = p_debe_cambiar, intentos_fallidos = 0, bloqueado_hasta = NULL
+   WHERE usuario_id = p_id;
+  UPDATE sesion SET cerrada_en = NOW()
+   WHERE usuario_id = p_id AND cerrada_en IS NULL AND token_hash <> COALESCE(p_token_conservar, '');
+END //
+
+-- Activar o desactivar. Desactivar cierra sus sesiones al momento.
+CREATE PROCEDURE sp_usuario_activar(IN p_id SMALLINT UNSIGNED, IN p_activo BOOLEAN)
+MODIFIES SQL DATA
+BEGIN
+  IF NOT p_activo AND (SELECT rol FROM usuario WHERE id = p_id) = 'ADMIN'
+     AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND id <> p_id) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Debe quedar al menos un administrador activo.';
+  END IF;
+  UPDATE usuario SET activo = p_activo WHERE id = p_id;
+  IF ROW_COUNT() = 0 AND NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese usuario.';
+  END IF;
+  IF NOT p_activo THEN UPDATE sesion SET cerrada_en = NOW() WHERE usuario_id = p_id AND cerrada_en IS NULL; END IF;
+END //
+
+-- Cerrar a distancia todas las sesiones de un usuario (por ejemplo, un teléfono perdido)
+CREATE PROCEDURE sp_usuario_cerrar_sesiones(IN p_id SMALLINT UNSIGNED)
+MODIFIES SQL DATA
+BEGIN
+  UPDATE sesion SET cerrada_en = NOW() WHERE usuario_id = p_id AND cerrada_en IS NULL;
 END //
 
 DELIMITER ;

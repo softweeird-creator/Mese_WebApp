@@ -82,6 +82,15 @@ details.rep summary{font-weight:700;color:var(--az);cursor:pointer;min-height:44
  .tw td:last-child{justify-content:flex-start;flex-wrap:wrap;gap:.4rem;padding-top:.5rem;white-space:normal}.tw td:last-child::before{content:none}.tw td:last-child .mini{margin:0;flex:1 1 auto}
  .cols{grid-template-columns:1fr}.vbar{margin:0 -.4rem}dialog{padding:1rem}}
 @media print{body.imp{display:block;background:#fff}body.imp>*:not(#hoja){display:none!important}body.imp #hoja{display:block}.hj .pg{break-after:page;padding:0}.hj .pg:last-child{break-after:auto}@page{size:letter;margin:10mm}}
+/* Acceso (solo cuando hay servidor) */
+#login{position:fixed;inset:0;z-index:60;background:linear-gradient(180deg,var(--az) 0%,var(--az3) 100%);display:grid;place-items:center;padding:1rem;overflow:auto}
+#login form{background:#fff;border-radius:16px;padding:2rem 1.6rem;width:min(400px,100%);display:grid;gap:1rem;box-shadow:0 12px 40px #0004}
+#login img{width:96px;height:96px;justify-self:center;border-radius:14px}#login h1{text-align:center;font-size:1.5rem}#login p{margin:0;text-align:center;color:var(--gr)}
+.errm{color:var(--rj);font-weight:700;margin:0;min-height:1.3em}
+.uac{display:flex;flex-direction:column;gap:.35rem}.uac .mini{margin:0}
+#usr{margin-top:auto;padding:1rem 1.4rem 0;border-top:1px solid #ffffff2e;display:grid;gap:.3rem;color:#fff}#usr small{opacity:.8}
+#usr button{background:none;border:0;color:#fff;text-align:left;padding:.25rem 0;font:inherit;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:860px){#usr{margin:0 0 0 auto;padding:0 .3rem;border:0;display:flex;align-items:center;gap:.8rem;flex:none;white-space:nowrap}#usr>div{display:none}}
 </style></head><body>
 <nav id="nav" aria-label="Menú"></nav><main id="main"></main>
 <dialog id="dl"><form id="bf"><h2>Dar de baja</h2><p id="bn"></p><p>Pasará al panel “Bajas”. Sus datos no se borran y podrá reactivarlo.</p>
@@ -96,6 +105,23 @@ details.rep summary{font-weight:700;color:var(--az);cursor:pointer;min-height:44
 <div class="gu"><button type="button" class="btn sec" id="bc">Cancelar</button><button class="btn ro">Confirmar baja</button></div></form></dialog>
 <dialog id="pv"><div class="gu"><button class="btn sec" data-x>Cerrar</button><button class="btn sec" data-pr="print">Imprimir</button><button class="btn" data-pr="pdf">Descargar PDF</button></div><div id="pvb" class="hj"></div></dialog><div id="hoja" class="hj"></div><div id="ok" hidden></div>
 <dialog id="vv"><div class="gu"><button class="btn sec" data-vx="vclose">Cerrar</button><button class="btn sec" data-vx="vedit">Editar</button><button class="btn sec" data-vx="vprint">Imprimir</button><button class="btn" data-vx="vpdf">Descargar PDF</button></div><div id="vvb" class="hj"></div></dialog>
+<div id="login" hidden><form id="lf" autocomplete="on"><img id="limg" alt="MESE"><h1>Sistema de MESE</h1><p>Entre con su usuario y contraseña.</p>
+<div><label for="lu">Usuario</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+<div><label for="lc">Contraseña</label><input id="lc" name="password" type="password" autocomplete="current-password" required></div>
+<p class="errm" id="le" role="alert"></p><button class="btn">Entrar</button></form></div>
+<dialog id="clv"><form id="cform"><h2 id="clt">Cambiar contraseña</h2><p id="clm"></p>
+<div><label for="ca">Contraseña actual</label><input id="ca" type="password" autocomplete="current-password" required></div>
+<div><label for="cn">Nueva contraseña (mínimo 6 caracteres)</label><input id="cn" type="password" autocomplete="new-password" minlength="6" required></div>
+<div><label for="cn2">Repita la nueva contraseña</label><input id="cn2" type="password" autocomplete="new-password" minlength="6" required></div>
+<p class="errm" id="ce" role="alert"></p><div class="gu"><button type="button" class="btn sec" id="ccan">Cancelar</button><button class="btn">Guardar contraseña</button></div></form></dialog>
+<dialog id="ud"><form id="uf"><h2 id="udt">Agregar usuario</h2>
+<div><label for="un">Nombre completo</label><input id="un" required maxlength="100"></div>
+<div><label for="ul2">Usuario para entrar (sin espacios ni acentos, ej. mlopez)</label><input id="ul2" required minlength="3" maxlength="40" pattern="[A-Za-z0-9._\-]+" autocapitalize="none" spellcheck="false"></div>
+<div><label for="uco">Correo (opcional)</label><input id="uco" type="email" maxlength="120"></div>
+<div><label for="ur">Rol</label><select id="ur"><option value="TRABAJO_SOCIAL">Trabajo social</option><option value="COORDINACION">Coordinación</option><option value="ADMIN">Administración</option></select></div>
+<div><label for="ucl" id="ucll">Contraseña temporal</label><input id="ucl" type="text" autocomplete="off" minlength="6" maxlength="200"></div>
+<p class="sub" style="margin:0">La persona tendrá que cambiar la contraseña temporal la primera vez que entre.</p>
+<p class="errm" id="ue" role="alert"></p><div class="gu"><button type="button" class="btn sec" id="ucan">Cancelar</button><button class="btn">Guardar</button></div></form></dialog>
 <dialog id="cf"><form method="dialog"><h2 id="cft"></h2><p id="cfm"></p><div class="gu"><button value="no" class="btn sec">Cancelar</button><button value="si" class="btn ro" id="cfo">Confirmar</button></div></form></dialog>
 <div id="net" hidden role="status">Sin internet · puede seguir capturando; todo se guarda en este teléfono.</div>
 <datalist id="dl-ts"></datalist><datalist id="dl-col"></datalist><datalist id="dl-part"></datalist><datalist id="dl-par"><option>Madre</option><option>Padre</option><option>Hermano(a)</option><option>Abuelo(a)</option><option>Tío(a)</option><option>Primo(a)</option><option>Hijo(a)</option><option>Participante</option><option>Padrastro / madrastra</option><option>Otro</option></datalist>
@@ -610,5 +636,56 @@ try{if(navigator.canShare&&navigator.canShare({files:[new File(['<p>'],'a.html',
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();vprompt=e;$('#vinst').hidden=false});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
-addEventListener('hashchange',route);all();route();vload();
+/* ================= ACCESO: solo cuando la página la entrega el servidor de MESE =================
+   Sin servidor (archivo abierto directo o demostración) todo sigue funcionando como antes. */
+let USR=null;
+const RL={ADMIN:'Administración',COORDINACION:'Coordinación',TRABAJO_SOCIAL:'Trabajo social'};
+$('#limg').src=LOGO;
+$('#nav').insertAdjacentHTML('beforeend',`<a href="#usuarios" data-i="usuarios" hidden>Usuarios</a><div id="usr" hidden><div><b id="usn"></b><br><small id="usrl"></small></div><button type="button" id="ucv">Cambiar contraseña</button><button type="button" id="usal">Salir</button></div>`);
+$('#main').insertAdjacentHTML('beforeend',`<section id="usuarios" class="pag" hidden><div class="top"><div><h1>Usuarios</h1><p class="sub">Personas que pueden entrar a la página. Solo la administración ve esta sección.</p></div><button class="btn" data-ua="nuevo">Agregar usuario</button></div><div class="tw" id="ulst"></div></section>`);
+async function api(m,u,b){const r=await fetch(u,{method:m,credentials:'same-origin',cache:'no-store',headers:b?{'Content-Type':'application/json'}:{},body:b?JSON.stringify(b):undefined});
+ let j={};try{j=await r.json()}catch(e){}
+ if(r.status==401&&u!='api/entrar')verLogin();
+ if(!r.ok)throw Object.assign(new Error(j.error||'No se pudo completar ('+r.status+')'),{st:r.status});return j}
+function verLogin(){USR=null;ls.del('mese_usr');$('#usr').hidden=true;$('#nav [data-i=usuarios]').hidden=true;$('#login').hidden=false;setTimeout(()=>$('#lu').focus(),50)}
+function ponerUsr(u,sinRed){USR=u;ls.set('mese_usr',JSON.stringify(u));$('#login').hidden=true;$('#usr').hidden=false;$('#usn').textContent=u.nombre;
+ $('#usrl').textContent=RL[u.rol]+(sinRed?' · sin conexión':'');$('#nav [data-i=usuarios]').hidden=u.rol!='ADMIN';
+ if(u.debeCambiar)verClave(true);else if(cur=='usuarios')cargarUsuarios()}
+async function acceso(){if(!location.protocol.startsWith('http'))return;let r;
+ try{r=await fetch('api/yo',{credentials:'same-origin',cache:'no-store'})}
+ catch(e){const u=ls.get('mese_usr');if(u)try{ponerUsr(JSON.parse(u),true)}catch(x){}return}   // sin internet: sigue con la última sesión
+ if(!(r.headers.get('content-type')||'').includes('json'))return;                                   // no hay servidor: demostración
+ if(r.status==401)return verLogin();if(r.ok)ponerUsr((await r.json()).usuario)}
+$('#lf').onsubmit=async e=>{e.preventDefault();const b=$('#lf .btn');b.disabled=true;$('#le').textContent='';
+ try{const j=await api('POST','api/entrar',{usuario:$('#lu').value,clave:$('#lc').value});$('#lc').value='';ponerUsr(j.usuario);toast('Hola, '+j.usuario.nombre)}
+ catch(x){$('#le').textContent=x.st?x.message:'No hay conexión con el servidor. Revise su internet.'}finally{b.disabled=false}};
+function verClave(obligada){const d=$('#clv');$('#cform').reset();$('#ce').textContent='';$('#ccan').hidden=obligada;
+ $('#clt').textContent=obligada?'Cree su contraseña':'Cambiar contraseña';
+ $('#clm').textContent=obligada?'Está usando una contraseña temporal. Escriba una nueva para continuar; puede ser fácil de recordar.':'Las demás sesiones abiertas con su usuario se cerrarán.';
+ d.oncancel=e=>{if(obligada)e.preventDefault()};if(!d.open)d.showModal()}
+$('#ccan').onclick=()=>$('#clv').close();$('#ucv').onclick=()=>verClave(false);
+$('#cform').onsubmit=async e=>{e.preventDefault();if($('#cn').value!=$('#cn2').value)return $('#ce').textContent='Las dos contraseñas nuevas no coinciden.';
+ try{const j=await api('POST','api/clave',{actual:$('#ca').value,nueva:$('#cn').value});$('#clv').close();ponerUsr(j.usuario);toast('Contraseña guardada')}catch(x){$('#ce').textContent=x.message}};
+$('#usal').onclick=()=>ask('Salir','Para volver a entrar necesitará su usuario y contraseña. Lo capturado en este teléfono no se borra.','Salir',async()=>{
+ try{await api('POST','api/salir')}catch(x){if(!x.st)return toast('Sin internet no se puede salir. Intente cuando tenga conexión.')}verLogin()});
+/* ---- Administración de usuarios ---- */
+let UL=[],uEd=null;
+const fdh=s=>s?fd(s.slice(0,10))+' '+s.slice(11,16):'Nunca';
+async function cargarUsuarios(){if(!USR||USR.rol!='ADMIN'){$('#ulst').innerHTML='<p class="vacio">Solo la administración puede ver los usuarios.</p>';return}
+ try{UL=(await api('GET','api/usuarios')).usuarios}catch(x){$('#ulst').innerHTML=`<p class="vacio">${h(x.message)}</p>`;return}
+ $('#ulst').innerHTML=`<table><thead><tr><th>Nombre<th>Usuario<th>Rol<th>Estado<th>Último acceso<th></th></tr></thead><tbody>${UL.map(u=>`<tr><td data-l="Nombre">${h(u.nombre)}<td data-l="Usuario">${h(u.login)}<td data-l="Rol">${RL[u.rol]}<td data-l="Estado">${!+u.activo?'Desactivado':+u.bloqueado?'Bloqueado 15 min':+u.debe_cambiar?'Contraseña temporal':'Activo'}<td data-l="Último acceso">${fdh(u.ultimo_acceso)}<td><div class="uac"><button class="mini" data-ua="editar" data-id="${u.id}">Editar</button><button class="mini${+u.activo?' d':''}" data-ua="activo" data-id="${u.id}">${+u.activo?'Desactivar':'Activar'}</button>${+u.sesiones_abiertas?`<button class="mini" data-ua="cerrar" data-id="${u.id}">Cerrar sesiones (${u.sesiones_abiertas})</button>`:''}</div></tr>`).join('')}</tbody></table>`}
+function verUsuario(u){uEd=u?u.id:null;$('#uf').reset();$('#ue').textContent='';$('#udt').textContent=u?'Editar usuario':'Agregar usuario';
+ $('#ucll').textContent=u?'Nueva contraseña temporal (déjela vacía para no cambiarla)':'Contraseña temporal';$('#ucl').required=!u;
+ if(u){$('#un').value=u.nombre;$('#ul2').value=u.login;$('#uco').value=u.correo||'';$('#ur').value=u.rol}$('#ud').showModal()}
+$('#ucan').onclick=()=>$('#ud').close();
+$('#uf').onsubmit=async e=>{e.preventDefault();const d={nombre:$('#un').value,usuario:$('#ul2').value,correo:$('#uco').value,rol:$('#ur').value},c=$('#ucl').value;
+ try{if(uEd){await api('PUT','api/usuarios/'+uEd,d);if(c)await api('POST',`api/usuarios/${uEd}/clave`,{clave:c})}else await api('POST','api/usuarios',{...d,clave:c});
+  $('#ud').close();toast(uEd?'Cambios guardados':'Usuario agregado');cargarUsuarios()}catch(x){$('#ue').textContent=x.message}};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ua]');if(!b)return;const u=UL.find(x=>x.id==b.dataset.id),a=b.dataset.ua,
+ hz=async(url,body,ok)=>{try{await api('POST',url,body);toast(ok);cargarUsuarios()}catch(x){toast(x.message)}};
+ if(a=='nuevo')verUsuario(null);else if(a=='editar')verUsuario(u);
+ else if(a=='activo')+u.activo?ask('Desactivar usuario',`${u.nombre} ya no podrá entrar y se cerrarán sus sesiones abiertas.`,'Desactivar',()=>hz(`api/usuarios/${u.id}/activo`,{activo:false},'Usuario desactivado')):hz(`api/usuarios/${u.id}/activo`,{activo:true},'Usuario activado');
+ else if(a=='cerrar')ask('Cerrar sesiones',`Se cerrará la sesión de ${u.nombre} en todos sus dispositivos (por ejemplo, un teléfono perdido).`,'Cerrar sesiones',()=>hz(`api/usuarios/${u.id}/cerrar-sesiones`,{},'Sesiones cerradas'))});
+addEventListener('hashchange',()=>{if(location.hash=='#usuarios')cargarUsuarios()});
+addEventListener('hashchange',route);all();route();vload();acceso();
 </script></body></html>

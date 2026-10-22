@@ -156,3 +156,11 @@ DROP PROCEDURE _pregunta;
 
 -- Usuario genérico para registros importados o sin trabajadora social identificada
 INSERT IGNORE INTO usuario (id, nombre, rol) VALUES (1, 'Sistema (importación)', 'ADMIN');
+
+-- Administrador genérico de MESE para entrar la primera vez:
+--   usuario: admin    contraseña: mese2026
+-- La página pide cambiar la contraseña al entrar. Si se olvida: npm run clave -- admin NuevaClave
+INSERT INTO usuario (nombre, rol) SELECT 'Administración MESE', 'ADMIN' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE nombre = 'Administración MESE');
+INSERT IGNORE INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar)
+SELECT MIN(id), 'admin', '$argon2id$v=19$m=65536,p=4,t=3$omOy4erXdRMpGAV1XWHAjQ$1P4A25nXjDXsNYdfuYll/71wffi2XGO9v87Ww//mAtY', TRUE FROM usuario WHERE nombre = 'Administración MESE';
