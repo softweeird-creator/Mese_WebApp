@@ -31,11 +31,15 @@ Para usar el panel de **Visitas domiciliarias** sin internet en los celulares, p
 ## Base de datos
 La carpeta `db/` tiene la base de datos MySQL normalizada (esquema, catálogos, vistas, procedimientos, triggers, carga desde Excel, pruebas y permisos). Ver `db/README.md`.
 
+## Servidor
+La carpeta `server/` tiene el servidor en TypeScript (Fastify): inicio de sesión, usuarios con permisos por persona (qué secciones ve, qué puede hacer y si ve a todos o solo a sus participantes asignados), lectura de los datos desde la base y entrega de la página. Ver `server/README.md`.
+Cuando la página la entrega el servidor, pide usuario y contraseña (primera vez: `admin` / `mese2026`). Abierta directo como archivo, sigue funcionando como demostración sin login.
+
 ## Archivos
 - `index.html` – la aplicación completa.
-- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v5`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
+- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v7`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `logo.png` – logo e instalación en la pantalla de inicio. El logo dentro de la página está en la constante `LOGO` de `index.html`.
 
 ## Pendiente
 - Los datos de participantes, familiares, bajas e histórico son de ejemplo y viven solo en la memoria del navegador.
-- Las visitas sí se guardan en el dispositivo (IndexedDB), pero cada teléfono tiene las suyas. La base de datos ya existe (`db/`); falta el servidor (Java) que conecte la página con ella usando `sp_guardar_visita`. Cada visita ya tiene un `id` único y fecha de modificación (`mod`), listos para sincronizarse cuando exista el servidor.
+- Las visitas sí se guardan en el dispositivo (IndexedDB), pero cada teléfono tiene las suyas. La base de datos ya existe (`db/`) y el servidor ya tiene el inicio de sesión (`server/`); falta conectar los paneles y enviar las visitas con `sp_guardar_visita` (fases 2 a 4). Cada visita ya tiene un `id` único y fecha de modificación (`mod`), listos para sincronizarse cuando exista el servidor.

@@ -24,6 +24,18 @@ DROP PROCEDURE IF EXISTS sp_actualizar_persona;
 DROP PROCEDURE IF EXISTS sp_guardar_familiar;
 DROP PROCEDURE IF EXISTS sp_guardar_escolaridad;
 DROP PROCEDURE IF EXISTS sp_eliminar_visita;
+DROP PROCEDURE IF EXISTS sp_datos_programa;
+DROP PROCEDURE IF EXISTS sp_acceso_buscar;
+DROP PROCEDURE IF EXISTS sp_acceso_registrar;
+DROP PROCEDURE IF EXISTS sp_sesion_validar;
+DROP PROCEDURE IF EXISTS sp_sesion_cerrar;
+DROP PROCEDURE IF EXISTS sp_usuario_guardar;
+DROP PROCEDURE IF EXISTS sp_usuario_clave;
+DROP PROCEDURE IF EXISTS sp_usuario_activar;
+DROP PROCEDURE IF EXISTS sp_usuario_cerrar_sesiones;
+DROP PROCEDURE IF EXISTS sp_usuario_reasignar;
+DROP PROCEDURE IF EXISTS sp_usuario_asignar;
+DROP PROCEDURE IF EXISTS sp_panel;
 
 DELIMITER //
 
@@ -275,7 +287,8 @@ END //
 -- ---------------------------------------------------------------------
 CREATE PROCEDURE sp_registrar_baja(
   IN p_participante_id INT UNSIGNED, IN p_fecha DATE, IN p_causa VARCHAR(80),
-  IN p_causa_estadistica VARCHAR(60), IN p_caso_exito VARCHAR(60), IN p_motivo TEXT)
+  IN p_causa_estadistica VARCHAR(60), IN p_caso_exito VARCHAR(60), IN p_motivo TEXT,
+  IN p_certificado VARCHAR(80), IN p_riesgo_egreso VARCHAR(20), IN p_nivel_riesgo_egreso VARCHAR(10))
 MODIFIES SQL DATA
 BEGIN
   DECLARE v_insc INT UNSIGNED; DECLARE v_causa TINYINT UNSIGNED;
@@ -297,11 +310,16 @@ BEGIN
          causa_estadistica_id = (SELECT id FROM cat_causa_baja_estadistica WHERE nombre = p_causa_estadistica),
          caso_exito_id = (SELECT id FROM cat_caso_exito WHERE nombre = p_caso_exito),
          motivo = fn_texto(p_motivo),
+         certificado_id = (SELECT id FROM cat_certificado WHERE nombre = p_certificado),
+         riesgo_egreso_id = (SELECT id FROM cat_nivel_riesgo WHERE nombre = p_nivel_riesgo_egreso),
          nivel_final_id = (SELECT pe.nivel_id FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
                             WHERE pe.participante_id = p_participante_id ORDER BY c.inicio DESC LIMIT 1),
          grado_final    = (SELECT pe.grado FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
                             WHERE pe.participante_id = p_participante_id ORDER BY c.inicio DESC LIMIT 1)
    WHERE id = v_insc;
+  -- "Económico/Emocional" = dos tipos de riesgo
+  INSERT IGNORE INTO inscripcion_riesgo (inscripcion_id, momento, tipo_riesgo_id)
+  SELECT v_insc, 'EGRESO', id FROM cat_tipo_riesgo WHERE FIND_IN_SET(nombre, REPLACE(COALESCE(p_riesgo_egreso, ''), '/', ','));
   UPDATE participante_beca SET hasta = COALESCE(p_fecha, CURDATE())
    WHERE participante_id = p_participante_id AND hasta IS NULL;
   COMMIT;
@@ -336,6 +354,8 @@ BEGIN
   DECLARE v_part INT UNSIGNED; DECLARE v_fam INT UNSIGNED; DECLARE v_usr SMALLINT UNSIGNED;
   DECLARE v_nom, v_app, v_apm VARCHAR(80);
   DECLARE v_gps VARCHAR(40);
+  DECLARE v_fnac DATE; DECLARE v_curp VARCHAR(40); DECLARE v_tel_p VARCHAR(40); DECLARE v_correo VARCHAR(120);
+  DECLARE v_fecha DATE; DECLARE v_carrera VARCHAR(120);
   DECLARE v_fin BOOLEAN DEFAULT FALSE;
   DECLARE c_n, c_ec, c_par, c_esc, c_oc, c_fn VARCHAR(160); DECLARE c_ed, c_ing, c_tel VARCHAR(40);
   DECLARE v_pid INT UNSIGNED;
@@ -387,6 +407,43 @@ BEGIN
     END IF;
     SELECT familia_id INTO v_fam FROM participante WHERE persona_id = v_part;
 
+    -- Datos personales del participante (solo los que vienen llenos y son válidos)
+    SET v_fecha = COALESCE(IF(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fecha')) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
+                              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fecha')), '%Y-%m-%d'), NULL), CURDATE());
+    SET v_fnac = IF(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fnac')) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
+                    STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.fnac')), '%Y-%m-%d'), NULL);
+    IF v_fnac > CURDATE() OR v_fnac < '1900-01-01' THEN SET v_fnac = NULL; END IF;
+    SET v_curp = UPPER(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.curp'))));
+    IF NOT v_curp REGEXP '^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$'
+       OR EXISTS (SELECT 1 FROM persona WHERE curp = v_curp AND id <> v_part) THEN SET v_curp = NULL; END IF;
+    SET v_tel_p = NULLIF(REGEXP_REPLACE(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.tel_p')), ''), '[^0-9]', ''), '');
+    IF LENGTH(v_tel_p) <> 10 THEN SET v_tel_p = NULL; END IF;
+    SET v_correo = LOWER(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.mail'))));
+    IF v_correo NOT LIKE '%_@_%._%' THEN SET v_correo = NULL; END IF;
+    UPDATE persona SET
+      fecha_nac_aprox  = IF(v_fnac IS NULL, fecha_nac_aprox, FALSE),
+      fecha_nacimiento = COALESCE(v_fnac, fecha_nacimiento),
+      genero           = COALESCE(CASE JSON_UNQUOTE(JSON_EXTRACT(d, '$.gen')) WHEN 'Mujer' THEN 'F' WHEN 'Hombre' THEN 'M' END, genero),
+      curp             = COALESCE(v_curp, curp),
+      telefono         = COALESCE(v_tel_p, telefono),
+      tipo_sangre_id   = COALESCE((SELECT id FROM cat_tipo_sangre WHERE nombre = REPLACE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.sangre')), '−', '-')), tipo_sangre_id)
+    WHERE id = v_part;
+
+    -- Beca MESE: patrocinadores marcados que no estén ya vigentes
+    INSERT IGNORE INTO participante_beca (participante_id, patrocinador_id, desde)
+    SELECT v_part, cp.id, v_fecha FROM cat_patrocinador cp
+    WHERE JSON_CONTAINS(JSON_EXTRACT(d, '$.pat'), JSON_QUOTE(cp.nombre))
+      AND NOT EXISTS (SELECT 1 FROM participante_beca b WHERE b.participante_id = v_part AND b.patrocinador_id = cp.id AND b.hasta IS NULL);
+
+    -- Carrera u oficio en la escolaridad más reciente
+    SET v_carrera = fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.carrera')));
+    IF v_carrera IS NOT NULL THEN
+      INSERT IGNORE INTO cat_carrera (nombre) VALUES (v_carrera);
+      UPDATE participante_escolaridad SET carrera_id = (SELECT id FROM cat_carrera WHERE nombre = v_carrera)
+      WHERE id = (SELECT id FROM (SELECT pe.id FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
+                                  WHERE pe.participante_id = v_part ORDER BY c.inicio DESC LIMIT 1) x);
+    END IF;
+
     -- Domicilio actual de la familia
     SET v_gps = JSON_UNQUOTE(JSON_EXTRACT(d, '$.gps'));
     UPDATE familia SET
@@ -396,6 +453,8 @@ BEGIN
       referencias  = COALESCE(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.ref'))), referencias),
       entre_calles = COALESCE(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.entre'))), entre_calles),
       telefono     = COALESCE(NULLIF(REGEXP_REPLACE(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.tel_t')), ''), '[^0-9]', ''), ''), telefono),
+      correo       = COALESCE(v_correo, correo),
+      aviso_privacidad = IF(JSON_UNQUOTE(JSON_EXTRACT(d, '$.aviso')) = 'Firmado', COALESCE(aviso_privacidad, v_fecha), aviso_privacidad),
       latitud      = COALESCE(fn_num(SUBSTRING_INDEX(v_gps, ',', 1)), latitud),
       longitud     = COALESCE(fn_num(SUBSTRING_INDEX(v_gps, ',', -1)), longitud)
     WHERE id = v_fam;
@@ -681,12 +740,256 @@ BEGIN
                           carrera_id = VALUES(carrera_id), grupo = VALUES(grupo), turno_id = VALUES(turno_id);
 END //
 
+-- Datos del participante dentro del programa: no. de becado, grupo de beca, trabajadora social
+-- asignada, becas ("Repsol/Bécalos" = dos) y aviso de privacidad de la familia.
+-- Un parámetro NULL deja el dato como estaba.
+CREATE PROCEDURE sp_datos_programa(
+  IN p_participante_id INT UNSIGNED, IN p_numero_becado TINYINT UNSIGNED, IN p_grupo_beca TINYINT UNSIGNED,
+  IN p_trabajadora VARCHAR(100), IN p_patrocinadores VARCHAR(200), IN p_aviso_firmado DATE)
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  IF NOT EXISTS (SELECT 1 FROM participante WHERE persona_id = p_participante_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese participante.';
+  END IF;
+  START TRANSACTION;
+  UPDATE participante SET
+    numero_becado  = COALESCE(p_numero_becado, numero_becado),
+    grupo_beca     = COALESCE(p_grupo_beca, grupo_beca),
+    trabajadora_id = COALESCE(fn_usuario(p_trabajadora), trabajadora_id)
+  WHERE persona_id = p_participante_id;
+  IF p_patrocinadores IS NOT NULL THEN
+    -- cierra las becas que ya no aparecen y abre las nuevas
+    UPDATE participante_beca b JOIN cat_patrocinador cp ON cp.id = b.patrocinador_id
+       SET b.hasta = GREATEST(b.desde, CURDATE())
+     WHERE b.participante_id = p_participante_id AND b.hasta IS NULL AND NOT FIND_IN_SET(cp.nombre, REPLACE(p_patrocinadores, '/', ','));
+    INSERT IGNORE INTO participante_beca (participante_id, patrocinador_id, desde)
+    SELECT p_participante_id, cp.id, CURDATE() FROM cat_patrocinador cp
+     WHERE FIND_IN_SET(cp.nombre, REPLACE(p_patrocinadores, '/', ','))
+       AND NOT EXISTS (SELECT 1 FROM participante_beca b WHERE b.participante_id = p_participante_id AND b.patrocinador_id = cp.id AND b.hasta IS NULL);
+  END IF;
+  IF p_aviso_firmado IS NOT NULL THEN
+    UPDATE familia f JOIN participante pt ON pt.familia_id = f.id SET f.aviso_privacidad = p_aviso_firmado WHERE pt.persona_id = p_participante_id;
+  END IF;
+  COMMIT;
+END //
+
 -- Eliminar una visita (por id de la base o por el id que le dio el teléfono)
 CREATE PROCEDURE sp_eliminar_visita(IN p_visita_id INT UNSIGNED, IN p_uuid VARCHAR(40))
 MODIFIES SQL DATA
 BEGIN
   DELETE FROM visita WHERE id = p_visita_id OR (p_uuid IS NOT NULL AND uuid_cliente = p_uuid);
   IF ROW_COUNT() = 0 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se encontró la visita.'; END IF;
+END //
+
+-- =====================================================================
+-- Acceso a la página. El servidor cifra y compara contraseñas (argon2);
+-- la base guarda el resultado, cuenta intentos y lleva las sesiones.
+-- =====================================================================
+
+-- Datos para revisar un inicio de sesión (incluye la contraseña cifrada)
+CREATE PROCEDURE sp_acceso_buscar(IN p_login VARCHAR(40))
+READS SQL DATA
+BEGIN
+  SELECT u.id, u.nombre, u.rol, u.activo, a.login, a.clave_hash, a.debe_cambiar,
+         COALESCE(a.bloqueado_hasta > NOW(), FALSE) AS bloqueado,
+         IF(fn_ve_todos(u.id), 'TODOS', 'ASIGNADOS') AS alcance, fn_permisos(u.id) AS permisos
+  FROM usuario_acceso a JOIN usuario u ON u.id = a.usuario_id
+  WHERE a.login = LOWER(TRIM(p_login));
+END //
+
+-- Resultado de un intento: si fue correcto abre la sesión; si no, cuenta el
+-- intento y tras 5 seguidos bloquea la cuenta 15 minutos.
+CREATE PROCEDURE sp_acceso_registrar(IN p_usuario_id SMALLINT UNSIGNED, IN p_correcto BOOLEAN,
+  IN p_token_hash CHAR(64), IN p_dispositivo VARCHAR(200), IN p_ip VARCHAR(45))
+MODIFIES SQL DATA
+BEGIN
+  IF p_correcto THEN
+    UPDATE usuario_acceso SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = NOW() WHERE usuario_id = p_usuario_id;
+    INSERT INTO sesion (token_hash, usuario_id, dispositivo, ip) VALUES (p_token_hash, p_usuario_id, LEFT(p_dispositivo, 200), p_ip);
+  ELSE
+    UPDATE usuario_acceso
+       SET bloqueado_hasta = IF(intentos_fallidos + 1 >= 5, NOW() + INTERVAL 15 MINUTE, bloqueado_hasta),
+           intentos_fallidos = IF(intentos_fallidos + 1 >= 5, 0, intentos_fallidos + 1)
+     WHERE usuario_id = p_usuario_id;
+  END IF;
+END //
+
+-- Quién está detrás de una cookie. Sin renglones = sesión cerrada o inválida.
+CREATE PROCEDURE sp_sesion_validar(IN p_token_hash CHAR(64))
+MODIFIES SQL DATA
+BEGIN
+  UPDATE sesion SET ultimo_uso = NOW()
+   WHERE token_hash = p_token_hash AND cerrada_en IS NULL AND ultimo_uso < NOW() - INTERVAL 5 MINUTE;
+  SELECT u.id, u.nombre, u.rol, a.login, a.debe_cambiar,
+         IF(fn_ve_todos(u.id), 'TODOS', 'ASIGNADOS') AS alcance, fn_permisos(u.id) AS permisos
+  FROM sesion s JOIN usuario u ON u.id = s.usuario_id JOIN usuario_acceso a ON a.usuario_id = u.id
+  WHERE s.token_hash = p_token_hash AND s.cerrada_en IS NULL AND u.activo;
+END //
+
+CREATE PROCEDURE sp_sesion_cerrar(IN p_token_hash CHAR(64))
+MODIFIES SQL DATA
+BEGIN
+  UPDATE sesion SET cerrada_en = NOW() WHERE token_hash = p_token_hash AND cerrada_en IS NULL;
+END //
+
+-- Alta (p_id NULL) o edición de un usuario. En el alta la contraseña es obligatoria.
+-- p_alcance: TODOS o ASIGNADOS. p_permisos: claves separadas por comas ("VER_ACTIVOS,EDITAR").
+-- Con NULL en cualquiera de los dos se usan los sugeridos del rol. La administración principal
+-- siempre ve todo y puede todo, así que a ella no se le guardan permisos.
+CREATE PROCEDURE sp_usuario_guardar(IN p_id SMALLINT UNSIGNED, IN p_nombre VARCHAR(100), IN p_login VARCHAR(40),
+  IN p_correo VARCHAR(120), IN p_rol VARCHAR(20), IN p_alcance VARCHAR(10), IN p_permisos VARCHAR(400),
+  IN p_clave_hash VARCHAR(255), OUT p_out SMALLINT UNSIGNED)
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  SET p_login = LOWER(TRIM(p_login)), p_nombre = fn_texto(p_nombre), p_correo = LOWER(fn_texto(p_correo));
+  IF p_nombre IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Escriba el nombre de la persona.'; END IF;
+  IF p_login IS NULL OR NOT p_login REGEXP '^[a-z0-9._-]{3,40}$' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El usuario debe tener de 3 a 40 letras sin acentos, números, punto o guion (ej. mlopez).';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM cat_rol WHERE clave = p_rol) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija un rol de la lista.';
+  END IF;
+  SET p_alcance = COALESCE(NULLIF(p_alcance, ''), (SELECT alcance FROM cat_rol WHERE clave = p_rol));
+  IF p_alcance NOT IN ('TODOS', 'ASIGNADOS') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija si ve a todos los participantes o solo a los asignados.';
+  END IF;
+  IF p_rol = 'ADMIN' THEN SET p_alcance = 'TODOS'; END IF;
+  SET p_permisos = REPLACE(UPPER(p_permisos), ' ', '');
+  IF p_permisos <> '' AND EXISTS (
+       SELECT 1 FROM JSON_TABLE(CONCAT('["', REPLACE(p_permisos, ',', '","'), '"]'), '$[*]' COLUMNS (clave VARCHAR(40) PATH '$')) j
+       WHERE j.clave NOT IN (SELECT clave FROM cat_permiso)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Hay un permiso que no existe; recargue la página e intente de nuevo.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM usuario_acceso WHERE login = p_login AND usuario_id <> COALESCE(p_id, 0)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese nombre de usuario ya existe; elija otro.';
+  END IF;
+  IF p_correo IS NOT NULL AND EXISTS (SELECT 1 FROM usuario WHERE correo = p_correo AND id <> COALESCE(p_id, 0)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese correo ya lo tiene otro usuario.';
+  END IF;
+  START TRANSACTION;
+  IF p_id IS NULL THEN
+    IF p_clave_hash IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Escriba una contraseña para el nuevo usuario.'; END IF;
+    INSERT INTO usuario (nombre, correo, rol, alcance) VALUES (p_nombre, p_correo, p_rol, p_alcance);
+    SET p_id = LAST_INSERT_ID();
+    INSERT INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar) VALUES (p_id, p_login, p_clave_hash, TRUE);
+  ELSE
+    IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_id) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese usuario.'; END IF;
+    IF p_rol <> 'ADMIN' AND (SELECT rol FROM usuario WHERE id = p_id) = 'ADMIN'
+       AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND tiene_acceso AND id <> p_id) = 0 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Debe quedar al menos un administrador activo.';
+    END IF;
+    UPDATE usuario SET nombre = p_nombre, correo = p_correo, rol = p_rol, alcance = p_alcance WHERE id = p_id;
+    IF EXISTS (SELECT 1 FROM usuario_acceso WHERE usuario_id = p_id) THEN
+      UPDATE usuario_acceso SET login = p_login WHERE usuario_id = p_id;
+    ELSEIF p_clave_hash IS NOT NULL THEN   -- trabajadora creada por la carga del Excel: se le da acceso
+      INSERT INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar) VALUES (p_id, p_login, p_clave_hash, TRUE);
+    END IF;
+  END IF;
+  DELETE FROM usuario_permiso WHERE usuario_id = p_id;
+  IF p_rol <> 'ADMIN' THEN
+    IF p_permisos IS NULL THEN
+      INSERT INTO usuario_permiso (usuario_id, permiso) SELECT p_id, permiso FROM cat_rol_permiso WHERE rol = p_rol;
+    ELSE
+      INSERT INTO usuario_permiso (usuario_id, permiso) SELECT p_id, clave FROM cat_permiso WHERE FIND_IN_SET(clave, p_permisos);
+    END IF;
+  END IF;
+  COMMIT;
+  SET p_out = p_id;
+END //
+
+-- Cambiar la contraseña. p_debe_cambiar = TRUE cuando la pone el administrador (temporal).
+-- Cierra las demás sesiones del usuario; conserva p_token_conservar (la de quien la cambia).
+CREATE PROCEDURE sp_usuario_clave(IN p_id SMALLINT UNSIGNED, IN p_clave_hash VARCHAR(255), IN p_debe_cambiar BOOLEAN,
+  IN p_token_conservar CHAR(64))
+MODIFIES SQL DATA
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM usuario_acceso WHERE usuario_id = p_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese usuario no tiene acceso a la página.';
+  END IF;
+  UPDATE usuario_acceso SET clave_hash = p_clave_hash, debe_cambiar = p_debe_cambiar, intentos_fallidos = 0, bloqueado_hasta = NULL
+   WHERE usuario_id = p_id;
+  UPDATE sesion SET cerrada_en = NOW()
+   WHERE usuario_id = p_id AND cerrada_en IS NULL AND token_hash <> COALESCE(p_token_conservar, '');
+END //
+
+-- Activar o desactivar. Desactivar cierra sus sesiones al momento.
+CREATE PROCEDURE sp_usuario_activar(IN p_id SMALLINT UNSIGNED, IN p_activo BOOLEAN)
+MODIFIES SQL DATA
+BEGIN
+  IF NOT p_activo AND (SELECT rol FROM usuario WHERE id = p_id) = 'ADMIN'
+     AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND tiene_acceso AND id <> p_id) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Debe quedar al menos un administrador activo.';
+  END IF;
+  UPDATE usuario SET activo = p_activo WHERE id = p_id;
+  IF ROW_COUNT() = 0 AND NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_id) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese usuario.';
+  END IF;
+  IF NOT p_activo THEN UPDATE sesion SET cerrada_en = NOW() WHERE usuario_id = p_id AND cerrada_en IS NULL; END IF;
+END //
+
+-- Cerrar a distancia todas las sesiones de un usuario (por ejemplo, un teléfono perdido)
+CREATE PROCEDURE sp_usuario_cerrar_sesiones(IN p_id SMALLINT UNSIGNED)
+MODIFIES SQL DATA
+BEGIN
+  UPDATE sesion SET cerrada_en = NOW() WHERE usuario_id = p_id AND cerrada_en IS NULL;
+END //
+
+-- Cuando una trabajadora social se va o cambia de colonias: pasa sus participantes a otra persona.
+-- Devuelve cuántos participantes se movieron.
+CREATE PROCEDURE sp_usuario_reasignar(IN p_de SMALLINT UNSIGNED, IN p_a SMALLINT UNSIGNED)
+MODIFIES SQL DATA
+BEGIN
+  IF p_de = p_a THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija a otra persona.'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_a AND activo AND id > 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija a una persona activa de la lista.';
+  END IF;
+  UPDATE participante SET trabajadora_id = p_a WHERE trabajadora_id = p_de;
+  SELECT ROW_COUNT() AS movidos;
+END //
+
+-- Participantes activos que atiende una persona: queda asignada exactamente a los de la lista
+-- (ids separados por comas). Los que estaban con otra persona pasan a ella; los suyos que no
+-- vienen en la lista quedan sin asignar. Solo toca participantes activos.
+CREATE PROCEDURE sp_usuario_asignar(IN p_usuario_id SMALLINT UNSIGNED, IN p_participantes TEXT)
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_usuario_id AND activo AND id > 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija a una persona activa de la lista.';
+  END IF;
+  SET p_participantes = REPLACE(COALESCE(p_participantes, ''), ' ', '');
+  START TRANSACTION;
+  UPDATE participante SET trabajadora_id = NULL
+   WHERE trabajadora_id = p_usuario_id AND NOT FIND_IN_SET(persona_id, p_participantes)
+     AND persona_id IN (SELECT persona_id FROM v_activo);
+  UPDATE participante SET trabajadora_id = p_usuario_id
+   WHERE FIND_IN_SET(persona_id, p_participantes) AND persona_id IN (SELECT persona_id FROM v_activo);
+  COMMIT;
+END //
+
+-- Renglones de una sección de la página, solo si el usuario puede verla y
+-- solo los participantes (o familias) que le tocan según su alcance.
+CREATE PROCEDURE sp_panel(IN p_usuario_id SMALLINT UNSIGNED, IN p_panel VARCHAR(20))
+READS SQL DATA
+BEGIN
+  IF p_panel NOT IN ('activos', 'historico', 'familiares', 'bajas') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Esa sección no existe.';
+  END IF;
+  IF NOT fn_puede(p_usuario_id, CONCAT('VER_', UPPER(p_panel))) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No tiene permiso para ver esta sección.';
+  END IF;
+  CASE p_panel
+    WHEN 'activos' THEN
+      SELECT * FROM v_activo WHERE fn_ve_participante(p_usuario_id, persona_id) ORDER BY nombre_completo;
+    WHEN 'historico' THEN
+      SELECT * FROM v_historico WHERE fn_ve_participante(p_usuario_id, persona_id) ORDER BY fecha_entrada DESC, nombre_completo;
+    WHEN 'bajas' THEN
+      SELECT * FROM v_baja WHERE fn_ve_participante(p_usuario_id, persona_id) ORDER BY fecha_baja DESC, nombre_completo;
+    ELSE
+      SELECT * FROM v_familiar WHERE fn_ve_familia(p_usuario_id, familia_id) ORDER BY nombre_completo;
+  END CASE;
 END //
 
 DELIMITER ;

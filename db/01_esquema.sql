@@ -28,7 +28,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS bitacora, visita_firma, visita_antecedente, visita_monto, visita_vacuna,
   visita_respuesta, visita_integrante, visita, cat_opcion, cat_pregunta, cat_seccion,
   participante_beca, participante_escolaridad, inscripcion_riesgo, inscripcion, participante,
-  familia_integrante, familia, persona, usuario, cat_rango_edad, cat_concepto_monto, cat_vacuna,
+  familia_integrante, familia, persona, sesion, usuario_acceso, usuario_permiso, usuario, cat_rol_permiso, cat_rol,
+  cat_permiso, cat_rango_edad, cat_concepto_monto, cat_vacuna,
   cat_tipo_riesgo, cat_nivel_riesgo, cat_certificado, cat_caso_exito, cat_causa_baja_estadistica,
   cat_causa_baja, cat_patrocinador, cat_turno, cat_ciclo_escolar, cat_carrera, cat_escuela,
   cat_nivel_grado, cat_nivel_educativo, cat_tipo_sangre, cat_estado_civil, cat_ocupacion,
@@ -197,13 +198,80 @@ CREATE TABLE cat_alias (
 -- ---------------------------------------------------------------------
 -- 2. Usuarios del sistema (trabajadoras sociales, coordinación)
 -- ---------------------------------------------------------------------
+-- Qué puede ver o hacer cada persona en la página. ADMIN (la administración
+-- principal) siempre puede todo; a los demás el administrador les elige permisos.
+CREATE TABLE cat_permiso (
+  clave   VARCHAR(20) PRIMARY KEY,                   -- VER_ACTIVOS, EDITAR...
+  nombre  VARCHAR(100) NOT NULL,
+  tipo    CHAR(5) NOT NULL,                          -- VER = una sección; HACER = una acción
+  orden   TINYINT UNSIGNED NOT NULL,
+  CONSTRAINT ck_permiso_tipo CHECK (tipo IN ('VER','HACER'))
+) ENGINE=InnoDB;
+
+-- Roles: un punto de partida. Al elegir un rol se marcan sus permisos sugeridos,
+-- y el administrador puede quitar o agregar permisos a cada persona.
+CREATE TABLE cat_rol (
+  clave    VARCHAR(20) PRIMARY KEY,
+  nombre   VARCHAR(60) NOT NULL,
+  alcance  VARCHAR(10) NOT NULL,                     -- alcance sugerido
+  orden    TINYINT UNSIGNED NOT NULL,
+  CONSTRAINT ck_rol_alcance CHECK (alcance IN ('TODOS','ASIGNADOS'))
+) ENGINE=InnoDB;
+
+CREATE TABLE cat_rol_permiso (
+  rol      VARCHAR(20) NOT NULL,
+  permiso  VARCHAR(20) NOT NULL,
+  PRIMARY KEY (rol, permiso),
+  CONSTRAINT fk_rolp_rol FOREIGN KEY (rol) REFERENCES cat_rol(clave) ON DELETE CASCADE,
+  CONSTRAINT fk_rolp_permiso FOREIGN KEY (permiso) REFERENCES cat_permiso(clave) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE usuario (
   id        SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   nombre    VARCHAR(100) NOT NULL,
   correo    VARCHAR(120) NULL UNIQUE,
   rol       VARCHAR(20)  NOT NULL DEFAULT 'TRABAJO_SOCIAL',
+  -- TODOS = ve a todos los participantes; ASIGNADOS = solo a los que tiene asignados y sus familias
+  alcance   VARCHAR(10)  NOT NULL DEFAULT 'TODOS',
   activo    BOOLEAN NOT NULL DEFAULT TRUE,
-  CONSTRAINT ck_usuario_rol CHECK (rol IN ('TRABAJO_SOCIAL','COORDINACION','ADMIN'))
+  CONSTRAINT ck_usuario_alcance CHECK (alcance IN ('TODOS','ASIGNADOS')),
+  CONSTRAINT fk_usuario_rol FOREIGN KEY (rol) REFERENCES cat_rol(clave)
+) ENGINE=InnoDB;
+
+-- Permisos de cada persona (los de ADMIN no se guardan: siempre son todos)
+CREATE TABLE usuario_permiso (
+  usuario_id  SMALLINT UNSIGNED NOT NULL,
+  permiso     VARCHAR(20) NOT NULL,
+  PRIMARY KEY (usuario_id, permiso),
+  CONSTRAINT fk_usup_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+  CONSTRAINT fk_usup_permiso FOREIGN KEY (permiso) REFERENCES cat_permiso(clave) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Acceso a la página: usuario y contraseña. Va en una tabla aparte para que
+-- quien solo puede leer "usuario" (reportes) nunca vea las contraseñas.
+CREATE TABLE usuario_acceso (
+  usuario_id         SMALLINT UNSIGNED PRIMARY KEY,
+  login              VARCHAR(40)  NOT NULL UNIQUE,      -- con lo que entra: "admin", "mlopez"
+  clave_hash         VARCHAR(255) NOT NULL,             -- argon2id; nunca la contraseña real
+  debe_cambiar       BOOLEAN NOT NULL DEFAULT TRUE,     -- contraseña temporal puesta por el administrador
+  intentos_fallidos  TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  bloqueado_hasta    DATETIME NULL,                     -- tras 5 intentos fallidos, 15 minutos
+  ultimo_acceso      DATETIME NULL,
+  CONSTRAINT ck_acceso_login CHECK (login REGEXP '^[a-z0-9._-]{3,40}$'),
+  CONSTRAINT fk_acceso_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Sesiones abiertas. Duran hasta que la persona sale o el administrador las cierra.
+CREATE TABLE sesion (
+  token_hash   CHAR(64) PRIMARY KEY,                    -- SHA-256 del valor de la cookie
+  usuario_id   SMALLINT UNSIGNED NOT NULL,
+  creada       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ultimo_uso   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  dispositivo  VARCHAR(200) NULL,
+  ip           VARCHAR(45) NULL,
+  cerrada_en   DATETIME NULL,
+  KEY ix_sesion_usuario (usuario_id, cerrada_en),
+  CONSTRAINT fk_sesion_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------

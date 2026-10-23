@@ -51,9 +51,26 @@ GRANT EXECUTE ON PROCEDURE mese.sp_actualizar_persona  TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_guardar_familiar    TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_guardar_escolaridad TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_registrar_baja      TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_datos_programa      TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_reactivar           TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_guardar_visita      TO 'mese_app_rol';
 GRANT EXECUTE ON PROCEDURE mese.sp_eliminar_visita     TO 'mese_app_rol';
+
+-- Acceso a la página (solo la aplicación; los reportes no ven usuarios ni sesiones)
+GRANT SELECT ON mese.v_usuario TO 'mese_app_rol';
+GRANT SELECT ON mese.v_rol TO 'mese_app_rol';
+GRANT SELECT ON mese.cat_permiso TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_panel                   TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_usuario_reasignar       TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_usuario_asignar         TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_acceso_buscar           TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_acceso_registrar        TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_sesion_validar          TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_sesion_cerrar           TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_usuario_guardar         TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_usuario_clave           TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_usuario_activar         TO 'mese_app_rol';
+GRANT EXECUTE ON PROCEDURE mese.sp_usuario_cerrar_sesiones TO 'mese_app_rol';
 
 -- Usuarios (cambie las contraseñas)
 CREATE USER IF NOT EXISTS 'mese_app'@'%'     IDENTIFIED BY 'CAMBIE_ESTA_CONTRASENA_1';

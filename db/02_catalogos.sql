@@ -154,5 +154,35 @@ CALL _pregunta(10,'deu','¿Tiene deudas?','UNICA',FALSE,1,'Sí|No');
 
 DROP PROCEDURE _pregunta;
 
+-- Permisos y roles. Se actualizan sin borrar, porque los usuarios ya los usan.
+INSERT INTO cat_permiso (clave, nombre, tipo, orden) VALUES
+ ('VER_ACTIVOS','Participantes activos','VER',1),('VER_HISTORICO','Registro histórico','VER',2),
+ ('VER_FAMILIARES','Familiares','VER',3),('VER_BAJAS','Bajas','VER',4),
+ ('VER_VISITAS','Visitas domiciliarias','VER',5),('VER_REPORTES','Reporte del mes y estadísticas','VER',6),
+ ('AGREGAR','Agregar participantes, familiares y registros','HACER',7),('EDITAR','Editar datos','HACER',8),
+ ('BAJAS','Dar de baja y reactivar','HACER',9),('BORRAR','Borrar registros','HACER',10),
+ ('VISITAS','Capturar y editar visitas','HACER',11),('EXPORTAR','Descargar Excel o PDF e imprimir','HACER',12)
+ON DUPLICATE KEY UPDATE nombre = VALUES(nombre), tipo = VALUES(tipo), orden = VALUES(orden);
+
+INSERT INTO cat_rol (clave, nombre, alcance, orden) VALUES
+ ('ADMIN','Administración principal','TODOS',1),('COORDINACION','Coordinación','TODOS',2),
+ ('TRABAJO_SOCIAL','Trabajo social','ASIGNADOS',3),('CONSULTA','Solo consulta','TODOS',4)
+ON DUPLICATE KEY UPDATE nombre = VALUES(nombre), alcance = VALUES(alcance), orden = VALUES(orden);
+
+DELETE FROM cat_rol_permiso;
+INSERT INTO cat_rol_permiso (rol, permiso)
+SELECT 'COORDINACION', clave FROM cat_permiso WHERE clave <> 'BORRAR'
+UNION ALL SELECT 'TRABAJO_SOCIAL', clave FROM cat_permiso
+ WHERE clave IN ('VER_ACTIVOS','VER_HISTORICO','VER_FAMILIARES','VER_BAJAS','VER_VISITAS','AGREGAR','EDITAR','VISITAS','EXPORTAR')
+UNION ALL SELECT 'CONSULTA', clave FROM cat_permiso WHERE tipo = 'VER' OR clave = 'EXPORTAR';
+
 -- Usuario genérico para registros importados o sin trabajadora social identificada
 INSERT IGNORE INTO usuario (id, nombre, rol) VALUES (1, 'Sistema (importación)', 'ADMIN');
+
+-- Administrador genérico de MESE para entrar la primera vez:
+--   usuario: admin    contraseña: mese2026
+-- La página pide cambiar la contraseña al entrar. Si se olvida: npm run clave -- admin NuevaClave
+INSERT INTO usuario (nombre, rol) SELECT 'Administración MESE', 'ADMIN' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE nombre = 'Administración MESE');
+INSERT IGNORE INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar)
+SELECT MIN(id), 'admin', '$argon2id$v=19$m=65536,p=4,t=3$omOy4erXdRMpGAV1XWHAjQ$1P4A25nXjDXsNYdfuYll/71wffi2XGO9v87Ww//mAtY', TRUE FROM usuario WHERE nombre = 'Administración MESE';

@@ -360,10 +360,10 @@ BEGIN
   DECLARE v_fam, v_per, v_tut, v_vis INT UNSIGNED; DECLARE v_nivel VARCHAR(10); DECLARE v_grado TINYINT;
   DECLARE r_becado, r_nac, r_ing, r_grupobeca, r_beca, r_gen, r_sangre, r_curp, r_esc, r_gradotxt, r_carrera, r_grupo, r_turno,
           r_ocm, r_escm, r_ocp, r_escp, r_civil, r_integr, r_apoyo, r_monto, r_ingreso, r_enf, r_adic, r_viol, r_activ_com, r_activ_fis,
-          r_activ_prod, r_neces, r_cp, r_telm, r_telp, r_telpart, r_telfam, r_correo, r_aviso, r_sabana TEXT;
+          r_activ_prod, r_neces, r_cp, r_telm, r_telp, r_telpart, r_telfam, r_correo, r_aviso, r_sabana, r_ts, r_liconsa, r_covid TEXT;
   DECLARE cur CURSOR FOR
     SELECT fila, c02, c23, c26, c55, c56, c04, c07, c09, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c24, c25, c27, c28, c29,
-           c32, c34, c35, c36, c42, c45, c33, c53, c52, c54, c61, c57, c73, c74, c75, c76, c77, c78, c03
+           c32, c34, c35, c36, c42, c45, c33, c53, c52, c54, c61, c57, c73, c74, c75, c76, c77, c78, c03, c08, c40, c44
     FROM stg_base WHERE fn_norm(c02) IS NOT NULL AND fn_norm(c02) NOT LIKE 'NOMBRE%' ORDER BY fila;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fin = TRUE;
 
@@ -372,7 +372,7 @@ BEGIN
   leer: LOOP
     FETCH cur INTO v_fila, v_nombre, v_madre, v_padre, v_dom, v_col, r_becado, r_nac, r_ing, r_grupobeca, r_beca, r_gen, r_sangre, r_curp,
       r_esc, r_gradotxt, r_carrera, r_grupo, r_turno, r_ocm, r_escm, r_ocp, r_escp, r_civil, r_integr, r_apoyo, r_monto, r_ingreso,
-      r_enf, r_adic, r_viol, r_activ_com, r_activ_fis, r_activ_prod, r_neces, r_cp, r_telm, r_telp, r_telpart, r_telfam, r_correo, r_aviso, r_sabana;
+      r_enf, r_adic, r_viol, r_activ_com, r_activ_fis, r_activ_prod, r_neces, r_cp, r_telm, r_telp, r_telpart, r_telfam, r_correo, r_aviso, r_sabana, r_ts, r_liconsa, r_covid;
     IF v_fin THEN LEAVE leer; END IF;
 
     -- Familia: los hermanos comparten madre (o padre, o domicilio)
@@ -443,6 +443,18 @@ BEGIN
         WHERE clave = CASE WHEN fn_norm(r_apoyo) REGEXP 'BENITO|RITA' THEN 'ap_bj' WHEN fn_norm(r_apoyo) REGEXP '60|ADULTO' THEN 'ap_am'
                            WHEN fn_norm(r_apoyo) REGEXP 'DISCAPACIDAD' THEN 'ap_dis' ELSE 'ap_ot' END;
       END IF;
+      -- Liconsa: el Excel solo dice si recibe (SI / NO TIENE), sin monto
+      IF fn_clave(r_liconsa) REGEXP '^SI' THEN
+        INSERT IGNORE INTO visita_monto (visita_id, concepto_id, monto, detalle)
+        SELECT v_vis, id, 0, 'Recibe (monto no registrado en Excel)' FROM cat_concepto_monto WHERE clave = 'ap_lic';
+      END IF;
+      -- Vacunas COVID del participante: "COMPLETAS", "2 DOSIS", "INCOMPLETAS", "NINGUNA"...
+      IF fn_clave(r_covid) IS NOT NULL AND fn_clave(r_covid) NOT IN ('N/A', 'PENDIENTE') THEN
+        INSERT IGNORE INTO visita_vacuna (visita_id, vacuna_id, rol, aplicada, dosis)
+        SELECT v_vis, id, 'PARTICIPANTE', NOT (fn_clave(r_covid) REGEXP '^(NINGUNA|NO)'),
+               IF(fn_clave(r_covid) REGEXP '^(NINGUNA|NO)', NULL, LEAST(10, CAST(NULLIF(REGEXP_SUBSTR(r_covid, '[0-9]+'), '') AS UNSIGNED)))
+        FROM cat_vacuna WHERE nombre = 'COVID-19';
+      END IF;
       IF fn_norm(r_enf) IS NOT NULL AND fn_norm(r_enf) NOT IN ('NINGUNA', 'N/A', 'NO') THEN
         INSERT INTO visita_antecedente (visita_id, enfermedad) VALUES (v_vis, LEFT(fn_texto(r_enf), 150));
       END IF;
@@ -468,7 +480,8 @@ BEGIN
     SET v_per = LAST_INSERT_ID();
     INSERT INTO carga_mapa VALUES ('BASE', v_fila, 'PARTICIPANTE', v_per, fn_norm(v_nombre));
     INSERT INTO participante (persona_id, familia_id, numero_becado, grupo_beca, trabajadora_id)
-    VALUES (v_per, v_fam, fn_num(r_becado), IF(fn_num(r_grupobeca) BETWEEN 1 AND 9, fn_num(r_grupobeca), NULL), NULL);
+    VALUES (v_per, v_fam, fn_num(r_becado), IF(fn_num(r_grupobeca) BETWEEN 1 AND 9, fn_num(r_grupobeca), NULL),
+            IF(fn_norm(r_ts) IN ('N/A', 'PENDIENTE', 'NO TIENE'), NULL, fn_usuario(fn_titulo(r_ts))));
     IF fn_fecha(r_ing) IS NULL THEN
       INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema) VALUES ('BASE', v_fila, 'INGRESO A MESE', r_ing, 'Sin fecha de ingreso; se usó la fecha de corte');
     END IF;
@@ -708,6 +721,17 @@ BEGIN
       INSERT IGNORE INTO inscripcion_riesgo (inscripcion_id, momento, tipo_riesgo_id)
       SELECT v_insc, x.m, tr.id FROM (SELECT 'INGRESO' AS m, fn_norm(r_riesgo_in) AS t UNION ALL SELECT 'EGRESO', fn_norm(r_riesgo_out)) x
       JOIN cat_tipo_riesgo tr ON x.t LIKE CONCAT('%', UPPER(LEFT(tr.nombre, 6)), '%');
+      -- Escuela donde estaba al salir (escolaridad del ciclo de salida)
+      IF fn_texto(r_escuela) IS NOT NULL AND fn_norm(r_escuela) NOT IN ('N/A', 'PENDIENTE', 'NO HAY REGISTRO', 'SIN REGISTRO') THEN
+        INSERT IGNORE INTO cat_escuela (nombre) VALUES (fn_texto(r_escuela));
+        INSERT IGNORE INTO participante_escolaridad (participante_id, ciclo_id, escuela_id, nivel_id, grado)
+        SELECT v_per, fn_ciclo(COALESCE(v_sal, v_ent)), (SELECT id FROM cat_escuela WHERE nombre = fn_texto(r_escuela)), i.nivel_final_id, i.grado_final
+        FROM inscripcion i WHERE i.id = v_insc AND i.nivel_final_id IS NOT NULL AND fn_ciclo(COALESCE(v_sal, v_ent)) IS NOT NULL;
+        IF ROW_COUNT() = 0 THEN
+          INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema)
+          VALUES ('HISTORICA', v_fila, 'ESCUELA', r_escuela, 'No se guardó la escuela: falta la escolaridad final o la fecha');
+        END IF;
+      END IF;
       IF fn_texto(r_esc_fin) IS NOT NULL AND fn_nivel(r_esc_fin) IS NULL AND fn_clave(r_esc_fin) NOT IN ('NO HAY REGISTRO','NO REGISTRO','PENDIENTE','N/A') THEN
         INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema) VALUES ('HISTORICA', v_fila, 'ESCOLARIDAD FINAL', r_esc_fin, 'No se reconoció el nivel escolar');
       END IF;

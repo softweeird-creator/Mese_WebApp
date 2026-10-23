@@ -8,6 +8,11 @@ SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;   -- misma intercalación que la b
 
 DROP FUNCTION IF EXISTS fn_edad;
 DROP FUNCTION IF EXISTS fn_ciclo;
+DROP FUNCTION IF EXISTS fn_puede;
+DROP FUNCTION IF EXISTS fn_permisos;
+DROP FUNCTION IF EXISTS fn_ve_todos;
+DROP FUNCTION IF EXISTS fn_ve_participante;
+DROP FUNCTION IF EXISTS fn_ve_familia;
 
 DELIMITER //
 -- Edad cumplida en una fecha dada (para estadísticas de meses pasados)
@@ -23,6 +28,38 @@ READS SQL DATA
 BEGIN
   RETURN (SELECT id FROM cat_ciclo_escolar WHERE p_fecha BETWEEN inicio AND fin LIMIT 1);
 END //
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- Permisos: qué puede ver o hacer cada usuario
+-- ---------------------------------------------------------------------
+DELIMITER //
+-- ¿El usuario (activo) tiene este permiso? La administración principal siempre.
+CREATE FUNCTION fn_puede(p_usuario_id SMALLINT UNSIGNED, p_permiso VARCHAR(20)) RETURNS BOOLEAN
+READS SQL DATA
+RETURN EXISTS (SELECT 1 FROM usuario u WHERE u.id = p_usuario_id AND u.activo
+               AND (u.rol = 'ADMIN' OR EXISTS (SELECT 1 FROM usuario_permiso x WHERE x.usuario_id = u.id AND x.permiso = p_permiso))) //
+
+-- Lista de permisos separada por comas, en el orden del catálogo
+CREATE FUNCTION fn_permisos(p_usuario_id SMALLINT UNSIGNED) RETURNS VARCHAR(400)
+READS SQL DATA
+RETURN (SELECT GROUP_CONCAT(c.clave ORDER BY c.orden) FROM cat_permiso c WHERE fn_puede(p_usuario_id, c.clave)) //
+
+-- ¿Ve a todos los participantes o solo a los asignados?
+CREATE FUNCTION fn_ve_todos(p_usuario_id SMALLINT UNSIGNED) RETURNS BOOLEAN
+READS SQL DATA
+RETURN EXISTS (SELECT 1 FROM usuario WHERE id = p_usuario_id AND (rol = 'ADMIN' OR alcance = 'TODOS')) //
+
+CREATE FUNCTION fn_ve_participante(p_usuario_id SMALLINT UNSIGNED, p_participante_id INT UNSIGNED) RETURNS BOOLEAN
+READS SQL DATA
+RETURN fn_ve_todos(p_usuario_id)
+    OR EXISTS (SELECT 1 FROM participante WHERE persona_id = p_participante_id AND trabajadora_id = p_usuario_id) //
+
+-- Una familia se ve si alguno de sus participantes está asignado al usuario
+CREATE FUNCTION fn_ve_familia(p_usuario_id SMALLINT UNSIGNED, p_familia_id INT UNSIGNED) RETURNS BOOLEAN
+READS SQL DATA
+RETURN fn_ve_todos(p_usuario_id)
+    OR EXISTS (SELECT 1 FROM participante WHERE familia_id = p_familia_id AND trabajadora_id = p_usuario_id) //
 DELIMITER ;
 
 -- ---------------------------------------------------------------------
@@ -77,7 +114,11 @@ SELECT
   pt.familia_id,
   pt.numero_becado,
   pt.grupo_beca,
+  pt.trabajadora_id,
   u.nombre                AS trabajadora_social,
+  p.telefono,
+  f.correo                AS correo_familia,
+  f.aviso_privacidad,
   col.nombre              AS colonia,
   col.codigo_postal,
   CONCAT_WS(' ', f.calle, f.numero_ext) AS domicilio,
@@ -114,11 +155,15 @@ SELECT * FROM v_participante WHERE estado = 'ACTIVO';
 CREATE OR REPLACE VIEW v_baja AS
 SELECT vp.persona_id, vp.nombre_completo, vp.genero, vp.edad, vp.nivel, vp.grado, vp.colonia,
        ia.fecha_ingreso, ia.fecha_baja, cb.nombre AS causa_baja, ce.nombre AS causa_estadistica, ia.motivo,
-       ia.id AS inscripcion_id
+       ia.id AS inscripcion_id, vp.familia_id, vp.trabajadora_id, vp.trabajadora_social,
+       cx.nombre AS caso_exito, ct.nombre AS certificado, nr.nombre AS nivel_riesgo_egreso
 FROM v_participante vp
 JOIN v_inscripcion_actual ia ON ia.participante_id = vp.persona_id
 LEFT JOIN cat_causa_baja cb ON cb.id = ia.causa_baja_id
 LEFT JOIN cat_causa_baja_estadistica ce ON ce.id = ia.causa_estadistica_id
+LEFT JOIN cat_caso_exito cx ON cx.id = ia.caso_exito_id
+LEFT JOIN cat_certificado ct ON ct.id = ia.certificado_id
+LEFT JOIN cat_nivel_riesgo nr ON nr.id = ia.riesgo_egreso_id
 WHERE vp.estado = 'BAJA';
 
 -- Panel "Registro histórico": todas las personas que han pasado por MESE
@@ -136,7 +181,11 @@ SELECT
        ELSE 'No concluyó' END AS resultado,
   ce.nombre AS caso_exito,
   CONCAT(ne.nombre, ' ', u.grado_final, '°') AS escolaridad_final,
-  col.nombre AS colonia
+  ne.nombre AS nivel_final, u.grado_final, ni.nombre AS nivel_inicial, u.grado_inicial,
+  cb.nombre AS causa_baja, cbe.nombre AS causa_estadistica, u.motivo, ct.nombre AS certificado,
+  ri.nombre AS nivel_riesgo_ingreso, re.nombre AS nivel_riesgo_egreso,
+  col.nombre AS colonia, CONCAT_WS(' ', f.calle, f.numero_ext) AS domicilio, f.telefono,
+  pt.familia_id, pt.trabajadora_id
 FROM (
   SELECT i.participante_id,
          MIN(i.fecha_ingreso) AS fecha_entrada,
@@ -153,11 +202,17 @@ JOIN familia f ON f.id = pt.familia_id
 LEFT JOIN cat_colonia col ON col.id = f.colonia_id
 LEFT JOIN cat_caso_exito ce ON ce.orden = a.exito_orden
 LEFT JOIN v_inscripcion_actual u ON u.participante_id = a.participante_id
-LEFT JOIN cat_nivel_educativo ne ON ne.id = u.nivel_final_id;
+LEFT JOIN cat_nivel_educativo ne ON ne.id = u.nivel_final_id
+LEFT JOIN cat_nivel_educativo ni ON ni.id = u.nivel_inicial_id
+LEFT JOIN cat_causa_baja cb ON cb.id = u.causa_baja_id
+LEFT JOIN cat_causa_baja_estadistica cbe ON cbe.id = u.causa_estadistica_id
+LEFT JOIN cat_certificado ct ON ct.id = u.certificado_id
+LEFT JOIN cat_nivel_riesgo ri ON ri.id = u.riesgo_ingreso_id
+LEFT JOIN cat_nivel_riesgo re ON re.id = u.riesgo_egreso_id;
 
 -- Panel "Familiares": tutores e integrantes de la familia
 CREATE OR REPLACE VIEW v_familiar AS
-SELECT p.id AS persona_id, p.nombre_completo, p.genero, fn_edad(p.fecha_nacimiento, CURDATE()) AS edad,
+SELECT p.id AS persona_id, p.nombre_completo, p.genero, p.fecha_nacimiento, fn_edad(p.fecha_nacimiento, CURDATE()) AS edad,
        pa.nombre AS parentesco, fi.es_tutor, fi.vive_en_casa, fi.familia_id,
        oc.nombre AS ocupacion, ne.nombre AS escolaridad, p.escolaridad_grado, ec.nombre AS estado_civil, p.telefono,
        (SELECT GROUP_CONCAT(pp.nombres ORDER BY pp.nombres SEPARATOR ', ')
@@ -215,3 +270,27 @@ JOIN (SELECT familia_id, MAX(fecha) AS fecha FROM visita WHERE estado = 'COMPLET
   ON ult.familia_id = vr.familia_id AND ult.fecha = vr.fecha
 WHERE vr.estado = 'COMPLETA'
   AND vr.visita_id = (SELECT MAX(v2.id) FROM visita v2 WHERE v2.familia_id = vr.familia_id AND v2.fecha = vr.fecha AND v2.estado = 'COMPLETA');
+
+-- ---------------------------------------------------------------------
+-- Usuarios de la página (sin contraseñas) para la pantalla de administración
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_usuario AS
+-- Incluye a las trabajadoras que llegaron con el Excel y aún no tienen acceso (login NULL).
+-- El usuario 1 es "Sistema (importación)" y no es una persona.
+SELECT u.id, u.nombre, u.correo, u.rol, IF(u.rol = 'ADMIN', 'TODOS', u.alcance) AS alcance, u.activo,
+       a.login, a.usuario_id IS NOT NULL AS tiene_acceso, COALESCE(a.debe_cambiar, FALSE) AS debe_cambiar,
+       a.ultimo_acceso, COALESCE(a.bloqueado_hasta > NOW(), FALSE) AS bloqueado,
+       (SELECT COUNT(*) FROM sesion s WHERE s.usuario_id = u.id AND s.cerrada_en IS NULL) AS sesiones_abiertas,
+       (SELECT COUNT(*) FROM participante pt JOIN v_inscripcion_actual ia ON ia.participante_id = pt.persona_id
+         WHERE pt.trabajadora_id = u.id AND ia.fecha_baja IS NULL AND NOT ia.sin_fechas) AS asignados,
+       fn_permisos(u.id) AS permisos
+FROM usuario u
+LEFT JOIN usuario_acceso a ON a.usuario_id = u.id
+WHERE u.id > 1;
+
+-- Roles con sus permisos sugeridos, para la pantalla de usuarios
+CREATE OR REPLACE VIEW v_rol AS
+SELECT r.clave, r.nombre, r.alcance, r.orden,
+       (SELECT GROUP_CONCAT(c.clave ORDER BY c.orden) FROM cat_rol_permiso rp JOIN cat_permiso c ON c.clave = rp.permiso
+         WHERE rp.rol = r.clave) AS permisos
+FROM cat_rol r;

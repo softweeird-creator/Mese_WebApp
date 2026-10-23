@@ -8,13 +8,13 @@ Toda la lógica está en SQL: la aplicación (Java o la página web) solo hace `
 
 | Archivo | Qué hace |
 |---|---|
-| `01_esquema.sql` | Crea la base `mese`: 43 tablas con llaves, restricciones `CHECK`, `UNIQUE` e índices |
+| `01_esquema.sql` | Crea la base `mese`: 49 tablas con llaves, restricciones `CHECK`, `UNIQUE` e índices |
 | `02_catalogos.sql` | Llena los catálogos: parentescos, niveles y grados, causas de baja, preguntas y opciones del cuestionario, rangos de edad de la hoja de estadísticas |
 | `03_funciones_vistas.sql` | Funciones (`fn_edad`, `fn_ciclo`) y las vistas que lee la aplicación |
 | `04_procedimientos.sql` | Altas, bajas, reactivaciones, edición, guardar visitas del teléfono y reportes |
 | `05_triggers.sql` | Validaciones que dependen de la fecha de hoy o de otros renglones, y la bitácora de cambios |
 | `06_carga_excel.sql` | Tablas de paso y procedimientos para pasar los Excel actuales a la base |
-| `07_pruebas.sql` | 45 pruebas automáticas; al final muestra cuáles pasaron |
+| `07_pruebas.sql` | 70 pruebas automáticas; al final muestra cuáles pasaron |
 | `08_seguridad.sql` | Usuario de la aplicación con permisos mínimos (cambie las contraseñas) |
 
 ```bash
@@ -24,7 +24,7 @@ mysql -u root -p < 02_catalogos.sql
 mysql -u root -p < 03_funciones_vistas.sql
 mysql -u root -p < 04_procedimientos.sql
 mysql -u root -p < 05_triggers.sql
-mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 45 pasaron, 0 fallaron
+mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 70 pasaron, 0 fallaron
 mysql -u root -p < 08_seguridad.sql
 ```
 
@@ -74,7 +74,11 @@ El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunt
 
 **Vistas (lectura):** `v_activo`, `v_baja`, `v_historico`, `v_familiar`, `v_participante`, `v_visita_resumen`, `v_familia_actual`, `v_respuesta`.
 
-**Procedimientos (escritura):** `sp_alta_participante`, `sp_actualizar_persona`, `sp_guardar_familiar`, `sp_guardar_escolaridad`, `sp_registrar_baja`, `sp_reactivar`, `sp_guardar_visita`, `sp_eliminar_visita`.
+**Procedimientos (escritura):** `sp_alta_participante`, `sp_actualizar_persona`, `sp_guardar_familiar`, `sp_guardar_escolaridad`, `sp_datos_programa` (no. de becado, grupo de beca, trabajadora social, becas y aviso de privacidad), `sp_registrar_baja`, `sp_reactivar`, `sp_guardar_visita`, `sp_eliminar_visita`.
+
+**Acceso a la página (los usa el servidor de `server/`):** tablas `usuario_acceso` (contraseña cifrada con argon2, aparte de `usuario` para que los reportes no la vean) y `sesion`; vista `v_usuario`; procedimientos `sp_acceso_buscar`, `sp_acceso_registrar`, `sp_sesion_validar`, `sp_sesion_cerrar`, `sp_usuario_guardar`, `sp_usuario_clave`, `sp_usuario_activar`, `sp_usuario_cerrar_sesiones`. `02_catalogos.sql` crea el administrador genérico `admin` / `mese2026`, que debe cambiar su contraseña al entrar.
+
+**Permisos:** cada usuario tiene un rol (`cat_rol`: administración principal, coordinación, trabajo social, solo consulta), un alcance (`TODOS` o `ASIGNADOS`: solo los participantes con `participante.trabajadora_id` igual a su id y sus familias) y sus permisos (`usuario_permiso`, del catálogo `cat_permiso`: secciones que ve y acciones que puede hacer). Al crear un usuario sin elegir permisos recibe los sugeridos de su rol (`cat_rol_permiso`). La administración principal siempre puede todo. Funciones `fn_puede`, `fn_permisos`, `fn_ve_participante`, `fn_ve_familia`; `sp_panel(usuario, sección)` entrega los renglones de una sección ya filtrados y rechaza la sección si no tiene permiso; `sp_usuario_asignar` y `sp_usuario_reasignar` cambian a quién atiende cada trabajadora social. `v_usuario` incluye a las trabajadoras que llegaron con el Excel y aún no tienen acceso.
 
 **Reportes:**
 - `sp_estadisticas_mes(año, mes)` reproduce la hoja "ESTADÍSTICAS". Cuenta a quienes estaban activos el último día del mes, con la edad que tenían ese día, así que se puede sacar cualquier mes pasado.
@@ -82,7 +86,7 @@ El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunt
 - `sp_visitas_tabla(desde, hasta)` da una fila por visita y una columna por pregunta, para exportar.
 - `sp_buscar(texto, límite)` busca sin importar acentos ni mayúsculas.
 
-`sp_guardar_visita` recibe el mismo objeto que guarda la página en el teléfono (`{"id","est","mod","d":{...}}`). Si llega dos veces no se duplica, y si llega una copia más vieja no borra la más nueva.
+`sp_guardar_visita` recibe el mismo objeto que guarda la página en el teléfono (`{"id","est","mod","d":{...}}`). Si llega dos veces no se duplica, y si llega una copia más vieja no borra la más nueva. También actualiza los datos del participante que trae la visita (género, fecha de nacimiento, CURP, teléfono, carrera u oficio, becas) y el correo y aviso de privacidad de la familia.
 
 ### Desde Java
 
@@ -94,10 +98,12 @@ try (Connection c = DriverManager.getConnection(url, "mese_app", pass)) {
     ResultSet rs = c.createStatement().executeQuery("SELECT * FROM v_activo ORDER BY nombre_completo");
 
     // Escribir
-    CallableStatement cs = c.prepareCall("{call sp_registrar_baja(?, ?, ?, ?, ?, ?)}");
+    CallableStatement cs = c.prepareCall("{call sp_registrar_baja(?, ?, ?, ?, ?, ?, ?, ?, ?)}");
     cs.setInt(1, personaId); cs.setDate(2, Date.valueOf(fecha));
     cs.setString(3, "Cambio de domicilio"); cs.setString(4, "Continúa estudiando");
     cs.setNull(5, Types.VARCHAR); cs.setString(6, motivo);
+    cs.setString(7, "Certificado de secundaria");                     // certificado (o null)
+    cs.setString(8, "Económico/Emocional"); cs.setString(9, "Medio");  // riesgo al egreso (o null)
     cs.execute();
 } catch (SQLException e) {
     if ("45000".equals(e.getSQLState())) mostrarAlUsuario(e.getMessage()); // mensajes ya escritos en español
