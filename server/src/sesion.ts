@@ -4,7 +4,7 @@ import { config } from './config.js';
 import { llamar } from './db.js';
 
 export const COOKIE = 'mese_sesion';
-export const ROLES = ['TRABAJO_SOCIAL', 'COORDINACION', 'ADMIN'] as const;
+export const ROLES = ['TRABAJO_SOCIAL', 'COORDINACION', 'CONSULTA', 'ADMIN'] as const;
 export type Rol = (typeof ROLES)[number];
 
 export interface Usuario {
@@ -13,7 +13,25 @@ export interface Usuario {
   rol: Rol;
   login: string;
   debeCambiar: boolean;
+  /** TODOS = ve a todos los participantes; ASIGNADOS = solo a los suyos y sus familias */
+  alcance: 'TODOS' | 'ASIGNADOS';
+  /** Claves de cat_permiso: VER_ACTIVOS, EDITAR... (la administración principal tiene todas) */
+  permisos: string[];
 }
+
+/** Lista "A,B,C" de la base a arreglo */
+export const lista = (v: unknown) => (v ? String(v).split(',').filter(Boolean) : []);
+
+/** Renglón de sp_acceso_buscar o sp_sesion_validar → usuario para la página */
+export const aUsuario = (f: Record<string, unknown>): Usuario => ({
+  id: Number(f.id),
+  nombre: String(f.nombre),
+  rol: f.rol as Rol,
+  login: String(f.login),
+  debeCambiar: Boolean(f.debe_cambiar),
+  alcance: f.alcance === 'ASIGNADOS' ? 'ASIGNADOS' : 'TODOS',
+  permisos: lista(f.permisos),
+});
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -49,7 +67,7 @@ export async function leerSesion(req: FastifyRequest) {
   const [f] = await llamar(req.server.db, 'sp_sesion_validar', [tokenHash]);
   if (!f) return;
   req.tokenHash = tokenHash;
-  req.usuario = { id: Number(f.id), nombre: String(f.nombre), rol: f.rol as Rol, login: String(f.login), debeCambiar: Boolean(f.debe_cambiar) };
+  req.usuario = aUsuario(f);
 }
 
 /** Para rutas que piden haber entrado. Con contraseña temporal solo se permite cambiarla. */
@@ -65,3 +83,10 @@ export async function requiereAdmin(req: FastifyRequest, reply: FastifyReply) {
   if (reply.sent) return;
   if (req.usuario!.rol !== 'ADMIN') return reply.code(403).send({ error: 'Solo la administración puede hacer esto.' });
 }
+
+/** Para rutas que piden un permiso (la base lo vuelve a revisar en sp_panel). */
+export const requierePermiso = (permiso: string) => async (req: FastifyRequest, reply: FastifyReply) => {
+  await requiereSesion(req, reply);
+  if (reply.sent) return;
+  if (!req.usuario!.permisos.includes(permiso)) return reply.code(403).send({ error: 'No tiene permiso para esto. Hable con la administración de MESE.' });
+};

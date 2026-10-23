@@ -33,6 +33,9 @@ DROP PROCEDURE IF EXISTS sp_usuario_guardar;
 DROP PROCEDURE IF EXISTS sp_usuario_clave;
 DROP PROCEDURE IF EXISTS sp_usuario_activar;
 DROP PROCEDURE IF EXISTS sp_usuario_cerrar_sesiones;
+DROP PROCEDURE IF EXISTS sp_usuario_reasignar;
+DROP PROCEDURE IF EXISTS sp_usuario_asignar;
+DROP PROCEDURE IF EXISTS sp_panel;
 
 DELIMITER //
 
@@ -789,7 +792,8 @@ CREATE PROCEDURE sp_acceso_buscar(IN p_login VARCHAR(40))
 READS SQL DATA
 BEGIN
   SELECT u.id, u.nombre, u.rol, u.activo, a.login, a.clave_hash, a.debe_cambiar,
-         COALESCE(a.bloqueado_hasta > NOW(), FALSE) AS bloqueado
+         COALESCE(a.bloqueado_hasta > NOW(), FALSE) AS bloqueado,
+         IF(fn_ve_todos(u.id), 'TODOS', 'ASIGNADOS') AS alcance, fn_permisos(u.id) AS permisos
   FROM usuario_acceso a JOIN usuario u ON u.id = a.usuario_id
   WHERE a.login = LOWER(TRIM(p_login));
 END //
@@ -817,7 +821,8 @@ MODIFIES SQL DATA
 BEGIN
   UPDATE sesion SET ultimo_uso = NOW()
    WHERE token_hash = p_token_hash AND cerrada_en IS NULL AND ultimo_uso < NOW() - INTERVAL 5 MINUTE;
-  SELECT u.id, u.nombre, u.rol, a.login, a.debe_cambiar
+  SELECT u.id, u.nombre, u.rol, a.login, a.debe_cambiar,
+         IF(fn_ve_todos(u.id), 'TODOS', 'ASIGNADOS') AS alcance, fn_permisos(u.id) AS permisos
   FROM sesion s JOIN usuario u ON u.id = s.usuario_id JOIN usuario_acceso a ON a.usuario_id = u.id
   WHERE s.token_hash = p_token_hash AND s.cerrada_en IS NULL AND u.activo;
 END //
@@ -829,8 +834,12 @@ BEGIN
 END //
 
 -- Alta (p_id NULL) o edición de un usuario. En el alta la contraseña es obligatoria.
+-- p_alcance: TODOS o ASIGNADOS. p_permisos: claves separadas por comas ("VER_ACTIVOS,EDITAR").
+-- Con NULL en cualquiera de los dos se usan los sugeridos del rol. La administración principal
+-- siempre ve todo y puede todo, así que a ella no se le guardan permisos.
 CREATE PROCEDURE sp_usuario_guardar(IN p_id SMALLINT UNSIGNED, IN p_nombre VARCHAR(100), IN p_login VARCHAR(40),
-  IN p_correo VARCHAR(120), IN p_rol VARCHAR(20), IN p_clave_hash VARCHAR(255), OUT p_out SMALLINT UNSIGNED)
+  IN p_correo VARCHAR(120), IN p_rol VARCHAR(20), IN p_alcance VARCHAR(10), IN p_permisos VARCHAR(400),
+  IN p_clave_hash VARCHAR(255), OUT p_out SMALLINT UNSIGNED)
 MODIFIES SQL DATA
 BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
@@ -839,8 +848,19 @@ BEGIN
   IF p_login IS NULL OR NOT p_login REGEXP '^[a-z0-9._-]{3,40}$' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El usuario debe tener de 3 a 40 letras sin acentos, números, punto o guion (ej. mlopez).';
   END IF;
-  IF p_rol NOT IN ('TRABAJO_SOCIAL', 'COORDINACION', 'ADMIN') THEN
+  IF NOT EXISTS (SELECT 1 FROM cat_rol WHERE clave = p_rol) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija un rol de la lista.';
+  END IF;
+  SET p_alcance = COALESCE(NULLIF(p_alcance, ''), (SELECT alcance FROM cat_rol WHERE clave = p_rol));
+  IF p_alcance NOT IN ('TODOS', 'ASIGNADOS') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija si ve a todos los participantes o solo a los asignados.';
+  END IF;
+  IF p_rol = 'ADMIN' THEN SET p_alcance = 'TODOS'; END IF;
+  SET p_permisos = REPLACE(UPPER(p_permisos), ' ', '');
+  IF p_permisos <> '' AND EXISTS (
+       SELECT 1 FROM JSON_TABLE(CONCAT('["', REPLACE(p_permisos, ',', '","'), '"]'), '$[*]' COLUMNS (clave VARCHAR(40) PATH '$')) j
+       WHERE j.clave NOT IN (SELECT clave FROM cat_permiso)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Hay un permiso que no existe; recargue la página e intente de nuevo.';
   END IF;
   IF EXISTS (SELECT 1 FROM usuario_acceso WHERE login = p_login AND usuario_id <> COALESCE(p_id, 0)) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ese nombre de usuario ya existe; elija otro.';
@@ -851,20 +871,28 @@ BEGIN
   START TRANSACTION;
   IF p_id IS NULL THEN
     IF p_clave_hash IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Escriba una contraseña para el nuevo usuario.'; END IF;
-    INSERT INTO usuario (nombre, correo, rol) VALUES (p_nombre, p_correo, p_rol);
+    INSERT INTO usuario (nombre, correo, rol, alcance) VALUES (p_nombre, p_correo, p_rol, p_alcance);
     SET p_id = LAST_INSERT_ID();
     INSERT INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar) VALUES (p_id, p_login, p_clave_hash, TRUE);
   ELSE
     IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_id) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe ese usuario.'; END IF;
     IF p_rol <> 'ADMIN' AND (SELECT rol FROM usuario WHERE id = p_id) = 'ADMIN'
-       AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND id <> p_id) = 0 THEN
+       AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND tiene_acceso AND id <> p_id) = 0 THEN
       SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Debe quedar al menos un administrador activo.';
     END IF;
-    UPDATE usuario SET nombre = p_nombre, correo = p_correo, rol = p_rol WHERE id = p_id;
+    UPDATE usuario SET nombre = p_nombre, correo = p_correo, rol = p_rol, alcance = p_alcance WHERE id = p_id;
     IF EXISTS (SELECT 1 FROM usuario_acceso WHERE usuario_id = p_id) THEN
       UPDATE usuario_acceso SET login = p_login WHERE usuario_id = p_id;
     ELSEIF p_clave_hash IS NOT NULL THEN   -- trabajadora creada por la carga del Excel: se le da acceso
       INSERT INTO usuario_acceso (usuario_id, login, clave_hash, debe_cambiar) VALUES (p_id, p_login, p_clave_hash, TRUE);
+    END IF;
+  END IF;
+  DELETE FROM usuario_permiso WHERE usuario_id = p_id;
+  IF p_rol <> 'ADMIN' THEN
+    IF p_permisos IS NULL THEN
+      INSERT INTO usuario_permiso (usuario_id, permiso) SELECT p_id, permiso FROM cat_rol_permiso WHERE rol = p_rol;
+    ELSE
+      INSERT INTO usuario_permiso (usuario_id, permiso) SELECT p_id, clave FROM cat_permiso WHERE FIND_IN_SET(clave, p_permisos);
     END IF;
   END IF;
   COMMIT;
@@ -891,7 +919,7 @@ CREATE PROCEDURE sp_usuario_activar(IN p_id SMALLINT UNSIGNED, IN p_activo BOOLE
 MODIFIES SQL DATA
 BEGIN
   IF NOT p_activo AND (SELECT rol FROM usuario WHERE id = p_id) = 'ADMIN'
-     AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND id <> p_id) = 0 THEN
+     AND (SELECT COUNT(*) FROM v_usuario WHERE rol = 'ADMIN' AND activo AND tiene_acceso AND id <> p_id) = 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Debe quedar al menos un administrador activo.';
   END IF;
   UPDATE usuario SET activo = p_activo WHERE id = p_id;
@@ -906,6 +934,62 @@ CREATE PROCEDURE sp_usuario_cerrar_sesiones(IN p_id SMALLINT UNSIGNED)
 MODIFIES SQL DATA
 BEGIN
   UPDATE sesion SET cerrada_en = NOW() WHERE usuario_id = p_id AND cerrada_en IS NULL;
+END //
+
+-- Cuando una trabajadora social se va o cambia de colonias: pasa sus participantes a otra persona.
+-- Devuelve cuántos participantes se movieron.
+CREATE PROCEDURE sp_usuario_reasignar(IN p_de SMALLINT UNSIGNED, IN p_a SMALLINT UNSIGNED)
+MODIFIES SQL DATA
+BEGIN
+  IF p_de = p_a THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija a otra persona.'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_a AND activo AND id > 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija a una persona activa de la lista.';
+  END IF;
+  UPDATE participante SET trabajadora_id = p_a WHERE trabajadora_id = p_de;
+  SELECT ROW_COUNT() AS movidos;
+END //
+
+-- Participantes activos que atiende una persona: queda asignada exactamente a los de la lista
+-- (ids separados por comas). Los que estaban con otra persona pasan a ella; los suyos que no
+-- vienen en la lista quedan sin asignar. Solo toca participantes activos.
+CREATE PROCEDURE sp_usuario_asignar(IN p_usuario_id SMALLINT UNSIGNED, IN p_participantes TEXT)
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
+  IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_usuario_id AND activo AND id > 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Elija a una persona activa de la lista.';
+  END IF;
+  SET p_participantes = REPLACE(COALESCE(p_participantes, ''), ' ', '');
+  START TRANSACTION;
+  UPDATE participante SET trabajadora_id = NULL
+   WHERE trabajadora_id = p_usuario_id AND NOT FIND_IN_SET(persona_id, p_participantes)
+     AND persona_id IN (SELECT persona_id FROM v_activo);
+  UPDATE participante SET trabajadora_id = p_usuario_id
+   WHERE FIND_IN_SET(persona_id, p_participantes) AND persona_id IN (SELECT persona_id FROM v_activo);
+  COMMIT;
+END //
+
+-- Renglones de una sección de la página, solo si el usuario puede verla y
+-- solo los participantes (o familias) que le tocan según su alcance.
+CREATE PROCEDURE sp_panel(IN p_usuario_id SMALLINT UNSIGNED, IN p_panel VARCHAR(20))
+READS SQL DATA
+BEGIN
+  IF p_panel NOT IN ('activos', 'historico', 'familiares', 'bajas') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Esa sección no existe.';
+  END IF;
+  IF NOT fn_puede(p_usuario_id, CONCAT('VER_', UPPER(p_panel))) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No tiene permiso para ver esta sección.';
+  END IF;
+  CASE p_panel
+    WHEN 'activos' THEN
+      SELECT * FROM v_activo WHERE fn_ve_participante(p_usuario_id, persona_id) ORDER BY nombre_completo;
+    WHEN 'historico' THEN
+      SELECT * FROM v_historico WHERE fn_ve_participante(p_usuario_id, persona_id) ORDER BY fecha_entrada DESC, nombre_completo;
+    WHEN 'bajas' THEN
+      SELECT * FROM v_baja WHERE fn_ve_participante(p_usuario_id, persona_id) ORDER BY fecha_baja DESC, nombre_completo;
+    ELSE
+      SELECT * FROM v_familiar WHERE fn_ve_familia(p_usuario_id, familia_id) ORDER BY nombre_completo;
+  END CASE;
 END //
 
 DELIMITER ;

@@ -2,7 +2,7 @@ import argon2 from 'argon2';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ErrorUsuario, llamar } from '../db.js';
-import { hashToken, nuevoToken, ponerCookie, quitarCookie, requiereSesion } from '../sesion.js';
+import { aUsuario, hashToken, nuevoToken, ponerCookie, quitarCookie, requiereSesion } from '../sesion.js';
 
 export const claveNueva = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.').max(200, 'La contraseña es demasiado larga.');
 
@@ -29,7 +29,7 @@ export async function rutasAcceso(app: FastifyInstance) {
     const token = nuevoToken();
     await llamar(app.db, 'sp_acceso_registrar', [u.id, true, hashToken(token), req.headers['user-agent'] ?? null, req.ip], Number(u.id));
     ponerCookie(reply, token);
-    return { usuario: { id: Number(u.id), nombre: u.nombre, rol: u.rol, login: u.login, debeCambiar: Boolean(u.debe_cambiar) } };
+    return { usuario: aUsuario(u) };
   });
 
   app.post('/api/salir', async (req, reply) => {

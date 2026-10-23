@@ -136,9 +136,9 @@ BEGIN
   CALL _probar('Visita terminada sin nombre se rechaza', 'ERROR', "CALL sp_guardar_visita('{\"id\":\"zzprueba-uuid-2\",\"est\":\"Completa\",\"d\":{\"fecha\":\"2026-01-01\"}}', NULL)");
 
   -- ---- Acceso a la página ----
-  CALL sp_usuario_guardar(NULL, 'Usuaria Zzprueba', 'zzprueba', NULL, 'TRABAJO_SOCIAL', 'hash-de-prueba', @u);
-  CALL _probar('Usuario repetido se rechaza', 'ERROR', "CALL sp_usuario_guardar(NULL, 'Otra', 'zzprueba', NULL, 'TRABAJO_SOCIAL', 'x', @u2)");
-  CALL _probar('Usuario con espacios o acentos se rechaza', 'ERROR', "CALL sp_usuario_guardar(NULL, 'Otra', 'maría lópez', NULL, 'TRABAJO_SOCIAL', 'x', @u2)");
+  CALL sp_usuario_guardar(NULL, 'Usuaria Zzprueba', 'zzprueba', NULL, 'TRABAJO_SOCIAL', NULL, NULL, 'hash-de-prueba', @u);
+  CALL _probar('Usuario repetido se rechaza', 'ERROR', "CALL sp_usuario_guardar(NULL, 'Otra', 'zzprueba', NULL, 'TRABAJO_SOCIAL', NULL, NULL, 'x', @u2)");
+  CALL _probar('Usuario con espacios o acentos se rechaza', 'ERROR', "CALL sp_usuario_guardar(NULL, 'Otra', 'maría lópez', NULL, 'TRABAJO_SOCIAL', NULL, NULL, 'x', @u2)");
   CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL); CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL);
   CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL); CALL sp_acceso_registrar(@u, FALSE, NULL, NULL, NULL);
   CALL _afirmar('Acceso: 4 intentos fallidos aún no bloquean', '0', (SELECT CAST(bloqueado AS CHAR) FROM v_usuario WHERE id = @u));
@@ -154,6 +154,34 @@ BEGIN
     (SELECT CAST(COUNT(*) AS CHAR) FROM sesion WHERE token_hash = REPEAT('a', 64) AND cerrada_en IS NULL));
   CALL _probar('No se puede desactivar al último administrador', 'ERROR',
     CONCAT('CALL sp_usuario_activar(', (SELECT id FROM v_usuario WHERE login = 'admin'), ', FALSE)'));
+
+  -- ---- Permisos ----
+  CALL _afirmar('Permisos: trabajo social recibe los sugeridos y ve solo a sus asignados',
+    'ASIGNADOS 1 0', (SELECT CONCAT_WS(' ', alcance, fn_puede(@u, 'EDITAR'), fn_puede(@u, 'BORRAR')) FROM v_usuario WHERE id = @u));
+  SET @ts = (SELECT trabajadora_id FROM participante WHERE persona_id = v_p);
+  CALL _afirmar('Permisos: con alcance ASIGNADOS no ve participantes de otra trabajadora', '0', CAST(fn_ve_participante(@u, v_p) AS CHAR));
+  CALL _afirmar('Permisos: ni a su familia', '0', CAST(fn_ve_familia(@u, v_fam) AS CHAR));
+  CALL sp_usuario_reasignar(@ts, @u);
+  CALL _afirmar('Permisos: al pasarle los participantes de otra trabajadora ya los ve', '1 1',
+    CONCAT(fn_ve_participante(@u, v_p), ' ', fn_ve_familia(@u, v_fam)));
+  CALL sp_usuario_reasignar(@u, @ts);
+  CALL sp_usuario_asignar(@u, CAST(v_p AS CHAR));
+  CALL _afirmar('Asignar: queda asignado a quien se eligió (si está activo)', IF(EXISTS (SELECT 1 FROM v_activo WHERE persona_id = v_p), '1', '0'),
+    CAST(fn_ve_participante(@u, v_p) AS CHAR));
+  CALL sp_usuario_asignar(@u, '');
+  CALL _afirmar('Asignar: con la lista vacía ya no tiene a nadie', '0', CAST(fn_ve_participante(@u, v_p) AS CHAR));
+  UPDATE participante SET trabajadora_id = @ts WHERE persona_id = v_p;
+  CALL sp_usuario_guardar(@u, 'Usuaria Zzprueba', 'zzprueba', NULL, 'CONSULTA', 'TODOS', 'VER_ACTIVOS', NULL, @u2);
+  CALL _afirmar('Permisos: solo consulta con permisos elegidos por el administrador', 'VER_ACTIVOS 1',
+    (SELECT CONCAT(permisos, ' ', fn_ve_participante(@u, v_p)) FROM v_usuario WHERE id = @u));
+  CALL _probar('Permisos: ve la sección que tiene permitida', 'OK', CONCAT('CALL sp_panel(', @u, ", 'activos')"));
+  CALL _probar('Permisos: no puede ver una sección sin permiso', 'ERROR', CONCAT('CALL sp_panel(', @u, ", 'bajas')"));
+  CALL _probar('Permisos: un permiso que no existe se rechaza', 'ERROR',
+    CONCAT("CALL sp_usuario_guardar(", @u, ", 'Usuaria Zzprueba', 'zzprueba', NULL, 'CONSULTA', 'TODOS', 'VER_TODO', NULL, @u2)"));
+  CALL sp_usuario_activar(@u, FALSE);
+  CALL _afirmar('Permisos: un usuario desactivado ya no puede nada', '0', CAST(fn_puede(@u, 'VER_ACTIVOS') AS CHAR));
+  CALL _afirmar('Permisos: la administración principal puede todo', '1 1',
+    (SELECT CONCAT(fn_puede(id, 'BORRAR'), ' ', fn_ve_participante(id, v_p)) FROM v_usuario WHERE login = 'admin'));
   DELETE FROM usuario WHERE id = @u;
 
   -- ---- Reportes ----

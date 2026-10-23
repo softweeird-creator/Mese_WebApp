@@ -8,6 +8,7 @@ import { ZodError } from 'zod';
 import { config } from './config.js';
 import { ErrorUsuario } from './db.js';
 import { rutasAcceso } from './rutas/acceso.js';
+import { rutasDatos } from './rutas/datos.js';
 import { rutasUsuarios } from './rutas/usuarios.js';
 import { leerSesion } from './sesion.js';
 
@@ -61,6 +62,7 @@ export async function crearApp(db: Pool, opciones: { registro?: boolean } = {}):
 
   await app.register(rutasAcceso);
   await app.register(rutasUsuarios);
+  await app.register(rutasDatos);
 
   for (const [ruta, archivo] of Object.entries(ARCHIVOS)) {
     app.get(ruta, (_req, reply) => {

@@ -32,7 +32,7 @@ Para usar el panel de **Visitas domiciliarias** sin internet en los celulares, p
 La carpeta `db/` tiene la base de datos MySQL normalizada (esquema, catálogos, vistas, procedimientos, triggers, carga desde Excel, pruebas y permisos). Ver `db/README.md`.
 
 ## Servidor
-La carpeta `server/` tiene el servidor en TypeScript (Fastify): inicio de sesión, usuarios y entrega de la página. Ver `server/README.md`.
+La carpeta `server/` tiene el servidor en TypeScript (Fastify): inicio de sesión, usuarios con permisos por persona (qué secciones ve, qué puede hacer y si ve a todos o solo a sus participantes asignados), lectura de los datos desde la base y entrega de la página. Ver `server/README.md`.
 Cuando la página la entrega el servidor, pide usuario y contraseña (primera vez: `admin` / `mese2026`). Abierta directo como archivo, sigue funcionando como demostración sin login.
 
 ## Archivos
