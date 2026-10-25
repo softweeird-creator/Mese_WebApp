@@ -57,9 +57,16 @@ BEGIN
   RETURN NULLIF(TRIM(REGEXP_REPLACE(COALESCE(p, ''), '[[:space:]]+', ' ')), '');
 END //
 
+-- fn_colonia, fn_ocupacion y fn_usuario sí insertan renglones, pero se declaran
+-- READS SQL DATA porque MySQL 8 con registro binario activo (lo trae por omisión)
+-- rechaza funciones MODIFIES SQL DATA aun para root (error 1418), y en hostings
+-- compartidos no se puede activar log_bin_trust_function_creators. La etiqueta
+-- es solo informativa para MySQL y con binlog_format=ROW (el de omisión) se
+-- replica bien.
+
 -- Busca una colonia de Morelia por nombre; si no existe la crea. Devuelve su id.
 CREATE FUNCTION fn_colonia(p_nombre VARCHAR(100), p_cp VARCHAR(10)) RETURNS SMALLINT UNSIGNED
-MODIFIES SQL DATA
+NOT DETERMINISTIC READS SQL DATA   -- ver nota arriba
 BEGIN
   DECLARE v_id SMALLINT UNSIGNED; DECLARE v_mun SMALLINT UNSIGNED;
   SET p_nombre = fn_texto(p_nombre);
@@ -75,7 +82,7 @@ BEGIN
 END //
 
 CREATE FUNCTION fn_ocupacion(p_nombre VARCHAR(80)) RETURNS SMALLINT UNSIGNED
-MODIFIES SQL DATA
+NOT DETERMINISTIC READS SQL DATA   -- ver nota arriba
 BEGIN
   DECLARE v_id SMALLINT UNSIGNED;
   SET p_nombre = fn_texto(p_nombre);
@@ -86,7 +93,7 @@ BEGIN
 END //
 
 CREATE FUNCTION fn_usuario(p_nombre VARCHAR(100)) RETURNS SMALLINT UNSIGNED
-MODIFIES SQL DATA
+NOT DETERMINISTIC READS SQL DATA   -- ver nota arriba
 BEGIN
   DECLARE v_id SMALLINT UNSIGNED;
   SET p_nombre = fn_texto(p_nombre);
