@@ -16,6 +16,7 @@ Toda la lógica está en SQL: la aplicación (Java o la página web) solo hace `
 | `06_carga_excel.sql` | Tablas de paso y procedimientos para pasar los Excel actuales a la base |
 | `07_pruebas.sql` | 70 pruebas automáticas; al final muestra cuáles pasaron |
 | `08_seguridad.sql` | Usuario de la aplicación con permisos mínimos (cambie las contraseñas) |
+| `09_pagina.sql` | Guardar desde la página: altas, ediciones, bajas, reactivaciones, familiares e histórico, revisando permisos |
 
 ```bash
 # MySQL 8.0.16 o superior, con un usuario administrador (root)
@@ -26,9 +27,10 @@ mysql -u root -p < 04_procedimientos.sql
 mysql -u root -p < 05_triggers.sql
 mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 70 pasaron, 0 fallaron
 mysql -u root -p < 08_seguridad.sql
+mysql -u root -p < 09_pagina.sql
 ```
 
-Probado en MySQL 8.0.46 con el registro binario activo (como viene por omisión): los 8 archivos instalan sin cambiar ninguna variable del servidor y `07_pruebas.sql` da 70 pasaron, 0 fallaron. No hace falta `log_bin_trust_function_creators`.
+Probado en MySQL 8.0.46 con el registro binario activo (como viene por omisión): los 9 archivos instalan sin cambiar ninguna variable del servidor y `07_pruebas.sql` da 70 pasaron, 0 fallaron. No hace falta `log_bin_trust_function_creators`.
 
 ## Diagrama
 
@@ -73,6 +75,8 @@ El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunt
 ## Lo que la aplicación usa
 
 **Vistas (lectura):** `v_activo`, `v_baja`, `v_historico`, `v_familiar`, `v_participante`, `v_visita_resumen`, `v_familia_actual`, `v_respuesta`.
+
+**Guardar desde la página (`09_pagina.sql`):** `sp_pagina_activo`, `sp_pagina_baja`, `sp_pagina_reactivar`, `sp_pagina_familiar`, `sp_pagina_historico`. Reciben el usuario conectado y lo capturado con las mismas claves cortas que usa la página (`n`, `curp`, `nv`, `gr`…). Cada uno revisa el permiso (`AGREGAR`, `EDITAR`, `BAJAS`) y el alcance del usuario, valida CURP, teléfonos, correo y grados con mensajes en español, y guarda todo en una transacción. Lo que agrega una trabajadora social que solo ve a sus asignados queda asignado a ella. El nombre completo se separa en nombres y apellidos tomando las dos últimas palabras como apellidos ("de la Torre" cuenta como una).
 
 **Procedimientos (escritura):** `sp_alta_participante`, `sp_actualizar_persona`, `sp_guardar_familiar`, `sp_guardar_escolaridad`, `sp_datos_programa` (no. de becado, grupo de beca, trabajadora social, becas y aviso de privacidad), `sp_registrar_baja`, `sp_reactivar`, `sp_guardar_visita`, `sp_eliminar_visita`.
 
@@ -167,7 +171,9 @@ Esa prueba con los archivos reales se hizo en MariaDB 11.4. En MySQL 8.0.46 la c
 
 1. `07_pruebas.sql`: 70 pruebas de las reglas de la base.
 2. `pruebas/pruebas_carga.sql`: carga con `LOAD DATA` los CSV de `pruebas/datos/` (personas inventadas, con el mismo acomodo de columnas que BASE, BDI y la histórica) y revisa 47 cosas. Por ejemplo, que los hermanos queden en una sola familia, que "REPSOL/BÉCALOS" sean dos becas, que se entiendan las fechas como número de serie de Excel, que lo que no se reconoce quede en `carga_pendiente` y que repetir la carga no duplique nada.
-3. `08_seguridad.sql` con contraseñas de prueba. Después entra como `mese_app` y `mese_reportes` y revisa qué pueden hacer y qué se les niega.
+3. `08_seguridad.sql` con contraseñas de prueba.
+4. `09_pagina.sql` y `pruebas/pruebas_pagina.sql`: 25 pruebas de guardar desde la página (permisos, alcance, validaciones, bajas, familiares e histórico).
+5. Después entra como `mese_app` y `mese_reportes` y revisa qué pueden hacer y qué se les niega.
 
 ```bash
 cd db

@@ -4,7 +4,7 @@ Servidor en TypeScript (Node + Fastify) que une la página con la base de datos 
 Es delgado: revisa quién está conectado, valida lo que llega y llama a los procedimientos `sp_...`
 de la base, donde viven las reglas.
 
-## Qué hace hoy (fases 1 y 2)
+## Qué hace hoy (fases 1, 2 y 3)
 
 - **Inicio de sesión** con usuario y contraseña (cifrada con argon2). La sesión dura hasta que la persona
   toca **Salir** o la administración la cierra.
@@ -25,8 +25,11 @@ de la base, donde viven las reglas.
 - Tras 5 contraseñas equivocadas seguidas, la cuenta espera 15 minutos.
 - Entrega la página (`index.html`) y los archivos para instalarla en el teléfono, nada más.
 
-Agregar, editar y dar de baja desde la página todavía no se guarda en la base: es la fase 3. Mientras tanto,
-con servidor esos botones avisan que llegan en la siguiente fase.
+- **Guardar desde la página** (fase 3): agregar y editar participantes, familiares y registros históricos, dar de baja
+  y reactivar. La base revisa el permiso y el alcance de cada persona y responde los errores en español
+  (CURP inválida, grado que no existe, teléfono incompleto...). Después de guardar, la página vuelve a leer los datos.
+
+Falta la fase 4: subir a la base las visitas que se capturan en el teléfono.
 
 ## Instalar y correr
 
@@ -68,6 +71,10 @@ En producción: `npm run build && npm start`, detrás de HTTPS y con `MODO=produ
 | `POST /api/usuarios/:id/reasignar` | Administración | `{a}` → pasa todos sus participantes a otra persona |
 | `GET /api/roles` | Administración | Permisos que existen y los sugeridos de cada rol |
 | `GET /api/datos` | Con sesión | `{activos, historico, familiares, bajas}`: solo las secciones y participantes que puede ver |
+| `POST /api/activos` · `/api/familiares` · `/api/historico` | Permiso AGREGAR | Lo capturado con las claves de la página → `{id}` |
+| `PUT /api/activos/:id` · `/api/familiares/:id` · `/api/historico/:id` | Permiso EDITAR | Guarda los cambios (solo de los participantes que le tocan) |
+| `POST /api/activos/:id/baja` | Permiso BAJAS | `{fb, mot, ce, cx, ct, rte, rne, mo}` → registra la baja |
+| `POST /api/bajas/:id/reactivar` | Permiso BAJAS | Abre un periodo nuevo con fecha de hoy |
 
 Los errores responden `{ "error": "mensaje en español" }`, listo para mostrar.
 

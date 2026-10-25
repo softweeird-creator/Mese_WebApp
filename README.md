@@ -37,9 +37,9 @@ Cuando la página la entrega el servidor, pide usuario y contraseña (primera ve
 
 ## Archivos
 - `index.html` – la aplicación completa.
-- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v7`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
+- `sw.js` – permite abrir la aplicación sin internet. **Cambie el número de versión (`mese-v9`) cada vez que publique cambios** para que los teléfonos reciban la actualización.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `logo.png` – logo e instalación en la pantalla de inicio. El logo dentro de la página está en la constante `LOGO` de `index.html`.
 
 ## Pendiente
-- Los datos de participantes, familiares, bajas e histórico son de ejemplo y viven solo en la memoria del navegador.
-- Las visitas sí se guardan en el dispositivo (IndexedDB), pero cada teléfono tiene las suyas. La base de datos ya existe (`db/`) y el servidor ya tiene el inicio de sesión (`server/`); falta conectar los paneles y enviar las visitas con `sp_guardar_visita` (fases 2 a 4). Cada visita ya tiene un `id` único y fecha de modificación (`mod`), listos para sincronizarse cuando exista el servidor.
+- Abierta directo como archivo (sin servidor), la página usa datos de ejemplo que viven solo en la memoria del navegador. Con servidor, participantes, familiares, bajas e histórico se leen y se guardan en la base.
+- Las visitas se guardan en el dispositivo (IndexedDB) y cada teléfono tiene las suyas. Falta enviarlas a la base con `sp_guardar_visita` (fase 4). Cada visita ya tiene un `id` único y fecha de modificación (`mod`), listos para sincronizarse.

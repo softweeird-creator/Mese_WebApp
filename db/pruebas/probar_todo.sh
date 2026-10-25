@@ -5,8 +5,9 @@
 #    1. 01..06 en orden
 #    2. 07_pruebas.sql (reglas de la base)
 #    3. pruebas_carga.sql con los CSV ficticios de pruebas/datos/ (06)
-#    4. 08_seguridad.sql con contraseñas de prueba y revisa los permisos
-#       entrando como mese_app y mese_reportes
+#    4. 08_seguridad.sql con contraseñas de prueba
+#    5. 09_pagina.sql y pruebas_pagina.sql (guardar desde la página)
+#    6. revisa los permisos entrando como mese_app y mese_reportes
 #
 #  BORRA la base "mese" y los usuarios mese_app / mese_reportes.
 #  Nunca lo corra en el servidor real.
@@ -67,6 +68,10 @@ paso "08_seguridad.sql con contraseñas de prueba"
 sed "s/CAMBIE_ESTA_CONTRASENA_1/$PASS_APP/; s/CAMBIE_ESTA_CONTRASENA_2/$PASS_REP/" 08_seguridad.sql | $ROOT \
   && ok "08_seguridad.sql" || mal "08_seguridad.sql"
 
+paso "09_pagina.sql (guardar desde la página)"
+if $ROOT < 09_pagina.sql > /dev/null; then ok "09_pagina.sql"; else mal "09_pagina.sql"; fi
+revisar_resumen "pruebas_pagina" "$($ROOT --batch --skip-column-names < pruebas/pruebas_pagina.sql)"
+
 app() { MYSQL_PWD=$PASS_APP mysql -h"$HOST" -umese_app --batch --skip-column-names mese -e "$1" 2>&1; }
 rep() { MYSQL_PWD=$PASS_REP mysql -h"$HOST" -umese_reportes --batch --skip-column-names mese -e "$1" 2>&1; }
 permite() { local quien=$1 nombre=$2 sql=$3 r; r=$($quien "$sql"); if [[ $r == *ERROR* ]]; then mal "$nombre → $r"; else ok "$nombre"; fi; }
@@ -80,6 +85,10 @@ permite app "mese_app da de alta con el procedimiento (y crea colonia nueva)" \
 permite app "mese_app registra la baja"               "SET @id = (SELECT persona_id FROM v_activo WHERE nombre_completo LIKE '%Zzapp%');
    CALL sp_registrar_baja(@id, CURDATE(), 'Cambio de domicilio', NULL, NULL, NULL, NULL, NULL, NULL);
    SELECT IF(COUNT(*) = 1, 'ok', 'ERROR no aparece en bajas') FROM v_baja WHERE persona_id = @id;"
+permite app "mese_app guarda desde la página con su procedimiento" \
+  "SET @u = (SELECT id FROM usuario WHERE rol = 'ADMIN' ORDER BY id LIMIT 1);
+   CALL sp_pagina_activo(@u, NULL, '{\"n\":\"Prueba Zzapp Pagina\",\"nv\":\"Primaria\",\"gr\":3}', @id);
+   SELECT IF(COUNT(*) = 1, 'ok', 'ERROR no aparece') FROM v_activo WHERE persona_id = @id;"
 niega app "mese_app no puede INSERT directo"          "INSERT INTO cat_colonia (nombre) VALUES ('x')"
 niega app "mese_app no puede UPDATE directo"          "UPDATE persona SET nombres = 'x' WHERE id = 1"
 niega app "mese_app no puede DELETE directo"          "DELETE FROM visita"

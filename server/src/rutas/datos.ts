@@ -39,6 +39,7 @@ const MAPEO: Record<Panel, (f: Fila) => Record<string, unknown>> = {
     nvi: nivel(f.nivel_inicial), gri: n(f.grado_inicial), y: anio(f.fecha_entrada), fe: t(f.fecha_entrada), fs: t(f.fecha_salida),
     eei: n(f.edad_al_entrar), ees: n(f.edad_al_salir), res: t(f.resultado), cx: t(f.caso_exito), ct: t(f.certificado),
     cb: t(f.causa_baja), ce: t(f.causa_estadistica), mo: t(f.motivo), rni: t(f.nivel_riesgo_ingreso), rne: t(f.nivel_riesgo_egreso),
+    rti: t(f.tipo_riesgo_ingreso), rte: t(f.tipo_riesgo_egreso),
     dir: t(f.domicilio), col: t(f.colonia), tel: t(f.telefono),
   }),
   familiares: (f) => ({

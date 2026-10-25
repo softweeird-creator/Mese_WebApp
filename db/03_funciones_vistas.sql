@@ -184,6 +184,10 @@ SELECT
   ne.nombre AS nivel_final, u.grado_final, ni.nombre AS nivel_inicial, u.grado_inicial,
   cb.nombre AS causa_baja, cbe.nombre AS causa_estadistica, u.motivo, ct.nombre AS certificado,
   ri.nombre AS nivel_riesgo_ingreso, re.nombre AS nivel_riesgo_egreso,
+  (SELECT GROUP_CONCAT(tr.nombre ORDER BY tr.id SEPARATOR '/') FROM inscripcion_riesgo r JOIN cat_tipo_riesgo tr ON tr.id = r.tipo_riesgo_id
+    WHERE r.inscripcion_id = u.id AND r.momento = 'INGRESO') AS tipo_riesgo_ingreso,
+  (SELECT GROUP_CONCAT(tr.nombre ORDER BY tr.id SEPARATOR '/') FROM inscripcion_riesgo r JOIN cat_tipo_riesgo tr ON tr.id = r.tipo_riesgo_id
+    WHERE r.inscripcion_id = u.id AND r.momento = 'EGRESO') AS tipo_riesgo_egreso,
   col.nombre AS colonia, CONCAT_WS(' ', f.calle, f.numero_ext) AS domicilio, f.telefono,
   pt.familia_id, pt.trabajadora_id
 FROM (

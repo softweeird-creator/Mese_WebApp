@@ -1,6 +1,6 @@
 /* MESE · service worker: permite abrir la app y capturar visitas sin internet.
    Cambie el número de versión cada vez que publique cambios en index.html. */
-const C='mese-v8';
+const C='mese-v9';
 const ARCHIVOS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./logo.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(ARCHIVOS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

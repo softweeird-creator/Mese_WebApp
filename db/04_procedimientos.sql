@@ -327,7 +327,7 @@ BEGIN
   -- "Económico/Emocional" = dos tipos de riesgo
   INSERT IGNORE INTO inscripcion_riesgo (inscripcion_id, momento, tipo_riesgo_id)
   SELECT v_insc, 'EGRESO', id FROM cat_tipo_riesgo WHERE FIND_IN_SET(nombre, REPLACE(COALESCE(p_riesgo_egreso, ''), '/', ','));
-  UPDATE participante_beca SET hasta = COALESCE(p_fecha, CURDATE())
+  UPDATE participante_beca SET hasta = GREATEST(desde, COALESCE(p_fecha, CURDATE()))
    WHERE participante_id = p_participante_id AND hasta IS NULL;
   COMMIT;
 END //
