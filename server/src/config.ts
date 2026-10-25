@@ -9,7 +9,7 @@ if (existsSync(archivoEnv)) process.loadEnvFile(archivoEnv);
 const e = process.env;
 
 export const config = {
-  puerto: Number(e.PUERTO ?? 3000),
+  puerto: Number(e.PUERTO ?? e.PORT ?? 3000),   // PORT: el que ponen algunos hospedajes
   produccion: e.MODO === 'produccion',
   // Solo si hay un proxy con HTTPS delante (nginx, Caddy...): así se ve la IP real de cada teléfono.
   detrasDeProxy: e.PROXY === 'si',

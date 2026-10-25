@@ -3,12 +3,12 @@
 Prototipo en HTML, CSS y JavaScript para administrar participantes, familiares, bajas, registro histórico y visitas domiciliarias de MESE Vasco de Quiroga I.A.P.
 
 ## Cómo usarlo
-Abra `index.html` en cualquier navegador. No necesita instalación.
+- **Demostración:** abra `index.html` en cualquier navegador. Usa datos de ejemplo y no necesita instalación.
+- **Para que MESE la use:** publíquela con el servidor y la base. La guía para hacerlo gratis en Oracle Cloud,
+  con un solo script, está en [`deploy/oracle/README.md`](deploy/oracle/README.md).
 
-Para usar el panel de **Visitas domiciliarias** sin internet en los celulares, publique la carpeta en GitHub Pages (u otro hosting con `https`):
-1. En GitHub: *Settings → Pages → Build and deployment → Branch: `main` / root → Save*.
-2. Abra la dirección que da GitHub (por ejemplo `https://softweeird-creator.github.io/Mese_WebApp/`) **una vez con internet** en cada teléfono.
-3. Elija “Agregar a pantalla de inicio” (o el botón “Instalar en el teléfono”). Desde ese momento abre y guarda visitas aunque no haya señal.
+En cada teléfono abra la dirección **una vez con internet** y elija “Agregar a pantalla de inicio” (o el botón
+“Instalar en el teléfono”). Desde ese momento abre y guarda visitas aunque no haya señal.
 
 ## Qué incluye
 - Paneles: Participantes activos, Registro histórico, Familiares, Bajas y Visitas domiciliarias.
