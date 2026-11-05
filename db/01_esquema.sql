@@ -291,7 +291,7 @@ CREATE TABLE persona (
   apellido_materno   VARCHAR(60)  NULL,
   fecha_nacimiento   DATE NULL,
   fecha_nac_aprox    BOOLEAN NOT NULL DEFAULT FALSE,   -- TRUE si solo se sabía la edad
-  genero             CHAR(1) CHARACTER SET ascii NULL,  -- 1 byte; CHECK y no ENUM para que un valor inválido dé un error que los procedimientos atrapan
+  genero             CHAR(1) CHARACTER SET ascii NULL,  -- F, M u O (otro). 1 byte; CHECK y no ENUM para que un valor inválido dé un error que los procedimientos atrapan
   curp               CHAR(18) CHARACTER SET ascii NULL,
   tipo_sangre_id     TINYINT UNSIGNED NULL,
   estado_civil_id    TINYINT UNSIGNED NULL,
@@ -309,7 +309,7 @@ CREATE TABLE persona (
   KEY ix_persona_apellidos (apellido_paterno, apellido_materno, nombres),
   KEY ix_persona_nombre_completo (nombre_completo),
   KEY ix_persona_nacimiento (fecha_nacimiento),
-  CONSTRAINT ck_persona_genero CHECK (genero IN ('F','M')),
+  CONSTRAINT ck_persona_genero CHECK (genero IN ('F','M','O')),
   CONSTRAINT ck_persona_curp CHECK (curp = UPPER(curp) AND curp REGEXP '^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$'),
   CONSTRAINT ck_persona_tel CHECK (telefono REGEXP '^[0-9]{10}$'),
   CONSTRAINT ck_persona_correo CHECK (correo LIKE '%_@_%._%'),

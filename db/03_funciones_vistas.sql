@@ -7,6 +7,7 @@ USE mese;
 SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;   -- misma intercalación que la base
 
 DROP FUNCTION IF EXISTS fn_edad;
+DROP FUNCTION IF EXISTS fn_genero_pagina;
 DROP FUNCTION IF EXISTS fn_ciclo;
 DROP FUNCTION IF EXISTS fn_puede;
 DROP FUNCTION IF EXISTS fn_permisos;
@@ -15,6 +16,14 @@ DROP FUNCTION IF EXISTS fn_ve_participante;
 DROP FUNCTION IF EXISTS fn_ve_familia;
 
 DELIMITER //
+-- Género como lo escribe la página → letra de la base (F, M u O).
+-- Acepta también "Mujer" y "Hombre", que usaban las versiones anteriores y las visitas ya guardadas.
+CREATE FUNCTION fn_genero_pagina(p TEXT) RETURNS CHAR(1) CHARACTER SET ascii
+DETERMINISTIC NO SQL
+RETURN CASE WHEN p IN ('Femenino', 'Mujer', 'F') THEN 'F'
+            WHEN p IN ('Masculino', 'Hombre', 'M') THEN 'M'
+            WHEN p = 'Otro' THEN 'O' END //
+
 -- Edad cumplida en una fecha dada (para estadísticas de meses pasados)
 CREATE FUNCTION fn_edad(p_nacimiento DATE, p_al DATE) RETURNS SMALLINT
 DETERMINISTIC NO SQL
@@ -154,6 +163,9 @@ SELECT * FROM v_participante WHERE estado = 'ACTIVO';
 -- Panel "Bajas": su periodo más reciente está cerrado
 CREATE OR REPLACE VIEW v_baja AS
 SELECT vp.persona_id, vp.nombre_completo, vp.genero, vp.edad, vp.nivel, vp.grado, vp.colonia,
+       vp.curp, vp.fecha_nacimiento, vp.tipo_sangre, vp.telefono, vp.correo_familia, vp.aviso_privacidad, vp.domicilio,
+       vp.tutor, vp.parentesco_tutor, vp.telefono_tutor, vp.escuela, vp.carrera, vp.grupo, vp.turno,
+       vp.numero_becado, vp.grupo_beca, vp.becas,
        ia.fecha_ingreso, ia.fecha_baja, cb.nombre AS causa_baja, ce.nombre AS causa_estadistica, ia.motivo,
        ia.id AS inscripcion_id, vp.familia_id, vp.trabajadora_id, vp.trabajadora_social,
        cx.nombre AS caso_exito, ct.nombre AS certificado, nr.nombre AS nivel_riesgo_egreso

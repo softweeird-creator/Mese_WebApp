@@ -430,7 +430,7 @@ BEGIN
     UPDATE persona SET
       fecha_nac_aprox  = IF(v_fnac IS NULL, fecha_nac_aprox, FALSE),
       fecha_nacimiento = COALESCE(v_fnac, fecha_nacimiento),
-      genero           = COALESCE(CASE JSON_UNQUOTE(JSON_EXTRACT(d, '$.gen')) WHEN 'Mujer' THEN 'F' WHEN 'Hombre' THEN 'M' END, genero),
+      genero           = COALESCE(fn_genero_pagina(JSON_UNQUOTE(JSON_EXTRACT(d, '$.gen'))), genero),
       curp             = COALESCE(v_curp, curp),
       telefono         = COALESCE(v_tel_p, telefono),
       tipo_sangre_id   = COALESCE((SELECT id FROM cat_tipo_sangre WHERE nombre = REPLACE(JSON_UNQUOTE(JSON_EXTRACT(d, '$.sangre')), '−', '-')), tipo_sangre_id)

@@ -18,7 +18,7 @@ const HASTA_PRIMARIA = ['Preescolar', 'Primaria', 'INEA', 'Educación especial']
 
 const t = (v: unknown) => (v == null ? '' : String(v));
 const n = (v: unknown) => (v == null || v === '' ? '' : Number(v));
-const genero = (v: unknown) => (v === 'F' ? 'Mujer' : v === 'M' ? 'Hombre' : '');
+const genero = (v: unknown) => (v === 'F' ? 'Femenino' : v === 'M' ? 'Masculino' : v === 'O' ? 'Otro' : '');
 const nivel = (v: unknown) => (v == null ? '' : NIVEL[String(v)] ?? String(v));
 const anio = (f: unknown) => (f ? Number(String(f).slice(0, 4)) : '');
 const mes = (f: unknown) => (f ? Number(String(f).slice(5, 7)) : '');
@@ -51,6 +51,10 @@ const MAPEO: Record<Panel, (f: Fila) => Record<string, unknown>> = {
     id: Number(f.persona_id), n: t(f.nombre_completo), g: genero(f.genero), nv: nivel(f.nivel), gr: n(f.grado),
     mot: t(f.causa_baja), ce: t(f.causa_estadistica), cx: t(f.caso_exito), ct: t(f.certificado), rne: t(f.nivel_riesgo_egreso),
     mo: t(f.motivo), fb: t(f.fecha_baja), mb: mes(f.fecha_baja), y: anio(f.fecha_baja), col: t(f.colonia), ts: t(f.trabajadora_social),
+    // El resto de sus datos, para la ficha completa
+    ed: n(f.edad), fi: t(f.fecha_ingreso), curp: t(f.curp), fn: t(f.fecha_nacimiento), sangre: sangre(f.tipo_sangre), esc: t(f.escuela),
+    car: t(f.carrera), grp: t(f.grupo), tur: t(f.turno), mad: t(f.tutor), tel: t(f.telefono_tutor), telp: t(f.telefono),
+    mail: t(f.correo_familia), av: f.aviso_privacidad ? 'Firmado' : 'Pendiente', nb: n(f.numero_becado), gb: n(f.grupo_beca), pat: t(f.becas),
   }),
 };
 
