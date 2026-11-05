@@ -162,8 +162,8 @@ DROP PROCEDURE _pregunta;
 -- Permisos y roles. Se actualizan sin borrar, porque los usuarios ya los usan.
 INSERT INTO cat_permiso (clave, nombre, tipo, orden) VALUES
  ('VER_ACTIVOS','Participantes activos','VER',1),('VER_HISTORICO','Registro histórico','VER',2),
- ('VER_FAMILIARES','Familiares','VER',3),('VER_BAJAS','Bajas','VER',4),
- ('VER_VISITAS','Visitas domiciliarias','VER',5),('VER_REPORTES','Reporte del mes y estadísticas','VER',6),
+ ('VER_FAMILIARES','Tutores e indirectos','VER',3),('VER_BAJAS','Bajas','VER',4),
+ ('VER_VISITAS','Seguimiento familiar','VER',5),('VER_REPORTES','Reporte del mes y estadísticas','VER',6),
  ('AGREGAR','Agregar participantes, familiares y registros','HACER',7),('EDITAR','Editar datos','HACER',8),
  ('BAJAS','Dar de baja y reactivar','HACER',9),('BORRAR','Borrar registros','HACER',10),
  ('VISITAS','Capturar y editar visitas','HACER',11),('EXPORTAR','Descargar Excel o PDF e imprimir','HACER',12)

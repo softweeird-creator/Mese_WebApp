@@ -12,7 +12,7 @@ nav{background:linear-gradient(180deg,var(--az) 0%,var(--az3) 100%);color:#fff;p
 .logo{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:.2rem 1.2rem 1.2rem;border-bottom:1px solid #ffffff2e;margin-bottom:.8rem;text-align:center;text-decoration:none;color:#fff}.logo img{width:112px;height:112px;border-radius:14px;box-shadow:0 6px 18px #0003}.logo small{font-size:.82rem;line-height:1.3;opacity:.85;font-weight:600}
 nav>a:not(.logo){padding:.8rem 1.4rem;font-weight:700;color:#fff;text-decoration:none;margin:0 .6rem;border-radius:10px}nav>a:not(.logo):hover{background:#ffffff1f}nav a.on{background:#fff;color:var(--az);box-shadow:inset 5px 0 0 var(--vb)}
 main{padding:2rem clamp(1rem,3vw,2.5rem) 4rem;max-width:1150px;min-width:0}
-.sub{color:var(--gr);margin:0 0 1.2rem}.top{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start}.top>div{flex:1 1 18rem;min-width:0}.top>.btn{flex:none;margin-left:auto}
+.sub{color:var(--gr);margin:0 0 1.2rem}.top{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start}.top>div:first-child{flex:1 1 18rem;min-width:0}.top>.btn,.top>.gu{flex:none;margin-left:auto}
 .guia{background:var(--ac);border-left:5px solid var(--az2);border-radius:10px;padding:.7rem 1rem;margin:0 0 1.2rem;color:var(--az)}
 button,.btn,input,select,textarea{font-family:var(--ff)}button,.btn{font-weight:700;font-size:1.02rem;cursor:pointer}
 .btn{min-height:52px;padding:.5rem 1.4rem;border:2px solid var(--vd);border-radius:999px;background:var(--vd);color:#fff;transition:background .15s}.btn:hover{background:var(--vdh);border-color:var(--vdh)}
@@ -557,7 +557,7 @@ function bkFile(){const now=new Date(),fecha=now.toLocaleDateString('es-MX',{dat
  const datos=JSON.stringify({app:'MESE',tipo:'visitas',version:1,exportado:now.toISOString(),visitas:V}).replace(/</g,'\\u003c');
  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Respaldo de visitas MESE · ${fecha}</title><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet"><style>${BKCSS}</style></head><body>
 <header class="top"><div class="in"><img src="${LOGO}" alt="MESE"><div><h1>Respaldo de visitas domiciliarias</h1><p>MESE Vasco de Quiroga I.A.P. · Guardado el ${fecha} a las ${hora}</p></div></div></header><main class="in">
-<div class="box nota"><b>¿Qué es este archivo?</b> Es una copia de seguridad de las visitas capturadas. Puede abrirlo en cualquier teléfono o computadora para leerlas o imprimirlas.<br><b>Para recuperarlas en el sistema:</b> abra MESE → Visitas domiciliarias → “Respaldo, exportar e importar” → “Importar respaldo” y elija este archivo. Las visitas repetidas no se duplican.</div>
+<div class="box nota"><b>¿Qué es este archivo?</b> Es una copia de seguridad de las visitas capturadas. Puede abrirlo en cualquier teléfono o computadora para leerlas o imprimirlas.<br><b>Para recuperarlas en el sistema:</b> abra MESE → Seguimiento familiar → “Respaldo, exportar e importar” → “Importar respaldo” y elija este archivo. Las visitas repetidas no se duplican.</div>
 <div class="box"><h2>Resumen</h2><div class="kp"><div><strong>${L.length}</strong>Visitas en total</div><div><strong>${comp}</strong>Terminadas</div><div><strong>${L.length-comp}</strong>Borradores</div></div></div>
 <div class="box lista"><h2>Lista de visitas</h2>${L.length?`<table><tr><th>Fecha<th>Participante<th>Colonia<th>Trabajadora social<th>Estado</tr>${L.map((r,i)=>`<tr><td>${fd(r.d.fecha)}<td><a href="#v${i}">${h(vnm(r.d))}</a><td>${h(r.d.col||'—')}<td>${h(r.d.ts||'—')}<td><span class="chip${r.est=='Completa'?'':' b'}">${r.est}</span></tr>`).join('')}</table>`:'<p>No hay visitas guardadas.</p>'}</div>
 ${L.map((r,i)=>`<section class="visita hj" id="v${i}">${ficha(r).replace(/^<div class="pg">|<\/div>$/g,'')}</section>`).join('')}
@@ -662,7 +662,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&vcur&&vdir
 
 /* ---------- Búsqueda global en Inicio ---------- */
 $('#gq').addEventListener('input',()=>{const q=$('#gq').value,g=$('#gr');if(!nq(q)){g.hidden=true;return}
- const grp=[...Object.keys(P).map(p=>[p,P[p].t,DB[p].filter(r=>hit(r,q)),r=>r.n,r=>p=='familiares'?r.par+' de '+r.hijo:p=='bajas'?r.mot:p=='historico'?r.res:r.nv+' · '+(r.col||'')]),['visitas','Visitas domiciliarias',V.filter(r=>hit(r.d,q)),r=>vnm(r.d),r=>fd(r.d.fecha)+' · '+(r.d.col||'')]].filter(x=>x[2].length);
+ const grp=[...Object.keys(P).map(p=>[p,P[p].t,DB[p].filter(r=>hit(r,q)),r=>r.n,r=>p=='familiares'?r.par+' de '+r.hijo:p=='bajas'?r.mot:p=='historico'?r.res:r.nv+' · '+(r.col||'')]),['visitas','Seguimiento familiar',V.filter(r=>hit(r.d,q)),r=>vnm(r.d),r=>fd(r.d.fecha)+' · '+(r.d.col||'')]].filter(x=>x[2].length);
  g.hidden=false;g.innerHTML=grp.length?grp.map(([p,t,rs,a,b])=>`<h3>${t} (${rs.length})</h3>${rs.slice(0,5).map(r=>`<a href="#${p}" data-gp="${p}"><strong>${h(a(r))}</strong><span>${h(b(r))}</span></a>`).join('')}`).join(''):'<p class="vacio" style="padding:0">Sin resultados.</p>'});
 document.addEventListener('click',e=>{const a=e.target.closest('a[data-gp]');if(!a)return;const p=a.dataset.gp,q=$('#gq').value,inp=p=='visitas'?$('#vq'):$('#q-'+p);inp.value=q;p=='visitas'?vupd():upd(p)});
 
