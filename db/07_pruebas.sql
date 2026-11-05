@@ -87,13 +87,19 @@ BEGIN
   INSERT INTO visita (familia_id, participante_id, fecha) VALUES (v_fam, v_p, CURDATE());
   SET v_vis = LAST_INSERT_ID();
   CALL _probar('Respuesta válida ("Su casa es: Rentada")', 'OK',
-    CONCAT("INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id) SELECT ", v_vis, ", q.id, o.id FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id WHERE q.clave = 'casa' AND o.etiqueta = 'Rentada'"));
+    CONCAT("INSERT INTO visita_respuesta (visita_id, opcion_id) SELECT ", v_vis, ", o.id FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id WHERE q.clave = 'casa' AND o.etiqueta = 'Rentada'"));
   CALL _probar('Segunda respuesta a pregunta de respuesta única se rechaza (trigger)', 'ERROR',
-    CONCAT("INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id) SELECT ", v_vis, ", q.id, o.id FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id WHERE q.clave = 'casa' AND o.etiqueta = 'Propia'"));
-  CALL _probar('Opción de otra pregunta se rechaza (llave compuesta)', 'ERROR',
-    CONCAT("INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id) SELECT ", v_vis, ", (SELECT id FROM cat_pregunta WHERE clave = 'comidas'), o.id FROM cat_opcion o JOIN cat_pregunta q ON q.id = o.pregunta_id WHERE q.clave = 'piso' AND o.etiqueta = 'Vitropiso'"));
+    CONCAT("INSERT INTO visita_respuesta (visita_id, opcion_id) SELECT ", v_vis, ", o.id FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id WHERE q.clave = 'casa' AND o.etiqueta = 'Propia'"));
+  CALL _probar('"Otro" escrito en pregunta de respuesta única ya contestada se rechaza (trigger)', 'ERROR',
+    CONCAT("INSERT INTO visita_respuesta_otro (visita_id, pregunta_id, texto_otro) SELECT ", v_vis, ", id, 'algo' FROM cat_pregunta WHERE clave = 'casa'"));
+  CALL _probar('Opción de opción múltiple ("Servicios: Agua")', 'OK',
+    CONCAT("INSERT INTO visita_respuesta (visita_id, opcion_id) SELECT ", v_vis, ", o.id FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id WHERE q.clave = 'serv' AND o.etiqueta = 'Agua'"));
+  CALL _probar('La misma opción dos veces se rechaza (llave primaria)', 'ERROR',
+    CONCAT("INSERT INTO visita_respuesta (visita_id, opcion_id) SELECT ", v_vis, ", o.id FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id WHERE q.clave = 'serv' AND o.etiqueta = 'Agua'"));
+  CALL _afirmar('La pregunta de cada respuesta sale de su opción (v_respuesta)', 'casa:Rentada serv:Agua',
+    (SELECT GROUP_CONCAT(CONCAT(clave, ':', respuesta) ORDER BY clave SEPARATOR ' ') FROM v_respuesta WHERE visita_id = v_vis));
   CALL _probar('"Otro" escrito en pregunta que no lo permite se rechaza (trigger)', 'ERROR',
-    CONCAT("INSERT INTO visita_respuesta (visita_id, pregunta_id, texto_otro) SELECT ", v_vis, ", id, 'algo' FROM cat_pregunta WHERE clave = 'hig'"));
+    CONCAT("INSERT INTO visita_respuesta_otro (visita_id, pregunta_id, texto_otro) SELECT ", v_vis, ", id, 'algo' FROM cat_pregunta WHERE clave = 'hig'"));
   CALL _probar('Visita con fecha futura se rechaza (trigger)', 'ERROR', CONCAT("UPDATE visita SET fecha = CURDATE() + INTERVAL 1 DAY WHERE id = ", v_vis));
   CALL _probar('Monto negativo se rechaza', 'ERROR', CONCAT("INSERT INTO visita_monto (visita_id, concepto_id, monto) VALUES (", v_vis, ", 1, -5)"));
   DELETE FROM visita WHERE id = v_vis;
@@ -110,7 +116,7 @@ BEGIN
   CALL _probar('sp_guardar_visita: guarda una visita de la página', 'OK', "CALL sp_guardar_visita(@json, NULL)");
   SET v_vis = (SELECT id FROM visita WHERE uuid_cliente = 'zzprueba-uuid-1');
   CALL _afirmar('Visita: se enlazó al participante existente (no lo duplicó)', CAST(v_p AS CHAR), (SELECT CAST(participante_id AS CHAR) FROM visita WHERE id = v_vis));
-  CALL _afirmar('Visita: respuestas guardadas (casa, 2 servicios, 2 pisos, car + otro, comidas, deudas, pobreza, dx nutricional)', '11', (SELECT CAST(COUNT(*) AS CHAR) FROM visita_respuesta WHERE visita_id = v_vis));
+  CALL _afirmar('Visita: respuestas guardadas (casa, 2 servicios, 2 pisos, car + otro, comidas, deudas, pobreza, dx nutricional)', '11', (SELECT CAST(COUNT(*) AS CHAR) FROM v_respuesta_id WHERE visita_id = v_vis));
   CALL _afirmar('Visita: ingreso total = 6500 + 4000', '10500.00', (SELECT CAST(ingreso_total AS CHAR) FROM v_visita_resumen WHERE visita_id = v_vis));
   CALL _afirmar('Visita: balance = 10500 + 1900 − 5500', '6900.00', (SELECT CAST(balance AS CHAR) FROM v_visita_resumen WHERE visita_id = v_vis));
   CALL _afirmar('Visita: reconoció a la madre ya registrada (no la duplicó)', '1', (SELECT CAST(COUNT(*) AS CHAR) FROM familia_integrante fi JOIN persona p ON p.id = fi.persona_id WHERE fi.familia_id = v_fam AND p.nombre_completo LIKE 'María Núñez Zzprueba%'));
@@ -151,7 +157,7 @@ BEGIN
   CALL _afirmar('Acceso: cambiar la contraseña cierra las otras sesiones', '1', (SELECT CAST(sesiones_abiertas AS CHAR) FROM v_usuario WHERE id = @u));
   CALL sp_sesion_cerrar(REPEAT('a', 64));
   CALL _afirmar('Acceso: salir cierra la sesión (ya no se reconoce)', '0',
-    (SELECT CAST(COUNT(*) AS CHAR) FROM sesion WHERE token_hash = REPEAT('a', 64) AND cerrada_en IS NULL));
+    (SELECT CAST(COUNT(*) AS CHAR) FROM sesion WHERE token_hash = UNHEX(REPEAT('a', 64)) AND cerrada_en IS NULL));
   CALL _probar('No se puede desactivar al último administrador', 'ERROR',
     CONCAT('CALL sp_usuario_activar(', (SELECT id FROM v_usuario WHERE login = 'admin'), ', FALSE)'));
 

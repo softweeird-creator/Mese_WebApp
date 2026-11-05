@@ -294,8 +294,8 @@ BEGIN
 
     IF v_fija IS NOT NULL THEN
       -- Columna SI/NO: "SI", "PIPA", "PROVISIONAL" o "PASAN" cuentan como que sí tienen el servicio
-      INSERT IGNORE INTO visita_respuesta (visita_id, pregunta_id, opcion_id)
-      SELECT t.visita_id, o.pregunta_id, o.id FROM t_tok t
+      INSERT IGNORE INTO visita_respuesta (visita_id, opcion_id)
+      SELECT t.visita_id, o.id FROM t_tok t
       JOIN cat_pregunta q ON q.clave = v_clave JOIN cat_opcion o ON o.pregunta_id = q.id AND o.etiqueta = v_fija
       WHERE t.tok IN ('SI', 'SI TIENE', 'PIPA', 'PROVISIONAL', 'PASAN')
         AND NOT EXISTS (SELECT 1 FROM visita_respuesta r WHERE r.visita_id = t.visita_id AND r.opcion_id = o.id);
@@ -303,8 +303,8 @@ BEGIN
       SELECT p_hoja, t.fila, v_tit, t.tok, 'Se esperaba SI o NO' FROM t_tok t WHERE t.tok NOT IN ('SI','SI TIENE','PIPA','PROVISIONAL','PASAN','NO','NO TIENE','N/A','NA');
     ELSE
       -- Cada parte se busca como opción, primero con su equivalencia
-      INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id)
-      SELECT x.visita_id, x.pregunta_id, x.opcion_id FROM (
+      INSERT INTO visita_respuesta (visita_id, opcion_id)
+      SELECT x.visita_id, x.opcion_id FROM (
         SELECT t.visita_id, o.pregunta_id, o.id AS opcion_id, ROW_NUMBER() OVER (PARTITION BY t.visita_id ORDER BY t.n) AS rn,
                ROW_NUMBER() OVER (PARTITION BY t.visita_id, o.id ORDER BY t.n) AS rep
         FROM t_tok t
@@ -317,7 +317,7 @@ BEGIN
         WHERE COALESCE(a.valor, a2.valor, '') <> '-'
       ) x
       WHERE x.rep = 1 AND (v_tipo = 'MULTIPLE' OR x.rn = 1)
-        AND NOT EXISTS (SELECT 1 FROM visita_respuesta r WHERE r.visita_id = x.visita_id AND r.pregunta_id = x.pregunta_id AND (v_tipo = 'UNICA' OR r.opcion_id = x.opcion_id));
+        AND NOT EXISTS (SELECT 1 FROM v_respuesta_id r WHERE r.visita_id = x.visita_id AND r.pregunta_id = x.pregunta_id AND (v_tipo = 'UNICA' OR r.opcion_id = x.opcion_id));
       -- Lo que no se reconoció queda para revisión
       INSERT INTO carga_pendiente (hoja, fila, columna, valor, problema)
       SELECT p_hoja, t.fila, v_tit, t.tok, CONCAT('No coincide con ninguna opción de "', v_clave, '"')
@@ -718,8 +718,8 @@ BEGIN
             WHEN fn_norm(r_cert) = 'PENDIENTE' THEN 'Pendiente' END),
         (SELECT ng.nivel_id FROM cat_nivel_grado ng JOIN cat_nivel_educativo ne ON ne.id = ng.nivel_id WHERE ne.clave = fn_nivel(r_esc_ini) AND ng.grado = COALESCE(fn_grado(r_esc_ini), 1)),
         (SELECT ng.grado FROM cat_nivel_grado ng JOIN cat_nivel_educativo ne ON ne.id = ng.nivel_id WHERE ne.clave = fn_nivel(r_esc_ini) AND ng.grado = COALESCE(fn_grado(r_esc_ini), 1)),
-        (SELECT ng.nivel_id FROM cat_nivel_grado ng JOIN cat_nivel_educativo ne ON ne.id = ng.nivel_id WHERE ne.clave = fn_nivel(r_esc_fin) AND ng.grado = COALESCE(fn_grado(r_esc_fin), ne.grados)),
-        (SELECT ng.grado FROM cat_nivel_grado ng JOIN cat_nivel_educativo ne ON ne.id = ng.nivel_id WHERE ne.clave = fn_nivel(r_esc_fin) AND ng.grado = COALESCE(fn_grado(r_esc_fin), ne.grados)),
+        (SELECT ng.nivel_id FROM cat_nivel_grado ng JOIN cat_nivel_educativo ne ON ne.id = ng.nivel_id WHERE ne.clave = fn_nivel(r_esc_fin) AND ng.grado = COALESCE(fn_grado(r_esc_fin), (SELECT MAX(g.grado) FROM cat_nivel_grado g WHERE g.nivel_id = ne.id))),
+        (SELECT ng.grado FROM cat_nivel_grado ng JOIN cat_nivel_educativo ne ON ne.id = ng.nivel_id WHERE ne.clave = fn_nivel(r_esc_fin) AND ng.grado = COALESCE(fn_grado(r_esc_fin), (SELECT MAX(g.grado) FROM cat_nivel_grado g WHERE g.nivel_id = ne.id))),
         (SELECT id FROM cat_nivel_riesgo WHERE nombre = CASE WHEN fn_norm(r_nivel_in) LIKE 'ALT%' THEN 'Alto' WHEN fn_norm(r_nivel_in) LIKE 'MED%' THEN 'Medio' WHEN fn_norm(r_nivel_in) LIKE 'BAJ%' THEN 'Bajo' END),
         (SELECT id FROM cat_nivel_riesgo WHERE nombre = CASE WHEN fn_norm(r_nivel_out) LIKE 'ALT%' THEN 'Alto' WHEN fn_norm(r_nivel_out) LIKE 'MED%' THEN 'Medio' WHEN fn_norm(r_nivel_out) LIKE 'BAJ%' THEN 'Bajo' END));
       SET v_insc = LAST_INSERT_ID();

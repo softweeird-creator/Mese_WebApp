@@ -252,11 +252,19 @@ LEFT JOIN (SELECT visita_id, SUM(ingreso_mensual) AS ingreso, COUNT(*) AS integr
 LEFT JOIN (SELECT vm.visita_id, SUM(IF(c.tipo = 'INGRESO', vm.monto, 0)) AS ingreso_declarado, SUM(IF(c.tipo = 'APOYO', vm.monto, 0)) AS apoyos, SUM(IF(c.tipo = 'EGRESO', vm.monto, 0)) AS egresos
              FROM visita_monto vm JOIN cat_concepto_monto c ON c.id = vm.concepto_id GROUP BY vm.visita_id) mon ON mon.visita_id = v.id;
 
+-- Todas las respuestas de una visita juntas: las de opción (la pregunta sale de la opción)
+-- y las escritas ("Otro"). Una fila por respuesta.
+CREATE OR REPLACE VIEW v_respuesta_id AS
+SELECT r.visita_id, o.pregunta_id, r.opcion_id, CAST(NULL AS CHAR(120)) AS texto_otro
+FROM visita_respuesta r JOIN cat_opcion o ON o.id = r.opcion_id
+UNION ALL
+SELECT visita_id, pregunta_id, NULL, texto_otro FROM visita_respuesta_otro;
+
 -- Respuestas en forma legible (una fila por respuesta)
 CREATE OR REPLACE VIEW v_respuesta AS
 SELECT r.visita_id, q.seccion_id, s.nombre AS seccion, q.clave, q.texto AS pregunta,
        COALESCE(o.etiqueta, CONCAT('Otro: ', r.texto_otro)) AS respuesta, o.orden
-FROM visita_respuesta r
+FROM v_respuesta_id r
 JOIN cat_pregunta q ON q.id = r.pregunta_id
 JOIN cat_seccion s  ON s.id = q.seccion_id
 LEFT JOIN cat_opcion o ON o.id = r.opcion_id;

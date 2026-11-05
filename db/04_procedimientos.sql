@@ -447,8 +447,9 @@ BEGIN
     IF v_carrera IS NOT NULL THEN
       INSERT IGNORE INTO cat_carrera (nombre) VALUES (v_carrera);
       UPDATE participante_escolaridad SET carrera_id = (SELECT id FROM cat_carrera WHERE nombre = v_carrera)
-      WHERE id = (SELECT id FROM (SELECT pe.id FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
-                                  WHERE pe.participante_id = v_part ORDER BY c.inicio DESC LIMIT 1) x);
+      WHERE participante_id = v_part
+        AND ciclo_id = (SELECT ciclo_id FROM (SELECT pe.ciclo_id FROM participante_escolaridad pe JOIN cat_ciclo_escolar c ON c.id = pe.ciclo_id
+                                              WHERE pe.participante_id = v_part ORDER BY c.inicio DESC LIMIT 1) x);
     END IF;
 
     -- Domicilio actual de la familia
@@ -498,6 +499,7 @@ BEGIN
 
     -- Se reemplazan las partes de la visita
     DELETE FROM visita_respuesta WHERE visita_id = v_id;
+    DELETE FROM visita_respuesta_otro WHERE visita_id = v_id;
     DELETE FROM visita_integrante WHERE visita_id = v_id;
     DELETE FROM visita_monto WHERE visita_id = v_id;
     DELETE FROM visita_vacuna WHERE visita_id = v_id;
@@ -505,18 +507,18 @@ BEGIN
     DELETE FROM visita_firma WHERE visita_id = v_id;
 
     -- Respuestas de opción: sirve igual para "Propia" que para ["Agua","Luz"]
-    INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id)
-    SELECT v_id, q.id, o.id
+    INSERT INTO visita_respuesta (visita_id, opcion_id)
+    SELECT v_id, o.id
     FROM cat_pregunta q JOIN cat_opcion o ON o.pregunta_id = q.id
     WHERE JSON_CONTAINS(JSON_EXTRACT(d, CONCAT('$."', q.clave, '"')), JSON_QUOTE(o.etiqueta));
     -- Respuestas "Otro, ¿cuál?"
-    INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id, texto_otro)
-    SELECT v_id, q.id, NULL, LEFT(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, CONCAT('$."', q.clave, '_ot"')))), 120)
+    INSERT INTO visita_respuesta_otro (visita_id, pregunta_id, texto_otro)
+    SELECT v_id, q.id, LEFT(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, CONCAT('$."', q.clave, '_ot"')))), 120)
     FROM cat_pregunta q
     WHERE q.permite_otro AND fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, CONCAT('$."', q.clave, '_ot"')))) IS NOT NULL;
     -- "Otro familiar" con adicciones: el nombre va como texto de la pregunta adi_o
-    INSERT INTO visita_respuesta (visita_id, pregunta_id, opcion_id, texto_otro)
-    SELECT v_id, q.id, NULL, LEFT(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.adi_o_n'))), 120)
+    INSERT INTO visita_respuesta_otro (visita_id, pregunta_id, texto_otro)
+    SELECT v_id, q.id, LEFT(fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.adi_o_n'))), 120)
     FROM cat_pregunta q WHERE q.clave = 'adi_o' AND fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.adi_o_n'))) IS NOT NULL
       AND fn_texto(JSON_UNQUOTE(JSON_EXTRACT(d, '$.adi_o_ot'))) IS NULL;
 
@@ -576,9 +578,13 @@ BEGIN
         INSERT INTO familia_integrante (familia_id, persona_id, parentesco_id, es_tutor)
         SELECT v_fam, v_pid, COALESCE((SELECT id FROM cat_parentesco WHERE nombre = fn_texto(c_par)), (SELECT id FROM cat_parentesco WHERE nombre = 'Otro')),
                fn_texto(c_par) IN ('Madre','Padre','Tutor(a)');
+      ELSE
+        -- El parentesco vive en familia_integrante: si la visita trae uno reconocido, se actualiza ahí
+        UPDATE familia_integrante SET parentesco_id = (SELECT id FROM cat_parentesco WHERE nombre = fn_texto(c_par))
+         WHERE familia_id = v_fam AND persona_id = v_pid AND EXISTS (SELECT 1 FROM cat_parentesco WHERE nombre = fn_texto(c_par));
       END IF;
-      INSERT INTO visita_integrante (visita_id, persona_id, parentesco_id, ocupacion_id, ingreso_mensual)
-      VALUES (v_id, v_pid, (SELECT id FROM cat_parentesco WHERE nombre = fn_texto(c_par)), fn_ocupacion(c_oc), COALESCE(fn_num(c_ing), 0))
+      INSERT INTO visita_integrante (visita_id, persona_id, ocupacion_id, ingreso_mensual)
+      VALUES (v_id, v_pid, fn_ocupacion(c_oc), COALESCE(fn_num(c_ing), 0))
       ON DUPLICATE KEY UPDATE ingreso_mensual = ingreso_mensual + VALUES(ingreso_mensual);
     END LOOP;
     CLOSE cur_fam;
@@ -633,7 +639,7 @@ BEGIN
 
   SELECT q.seccion_id, q.clave, q.texto AS pregunta, COALESCE(o.etiqueta, 'Otro') AS respuesta, COUNT(*) AS familias
   FROM t_vis t
-  JOIN visita_respuesta r ON r.visita_id = t.visita_id
+  JOIN v_respuesta_id r ON r.visita_id = t.visita_id
   JOIN cat_pregunta q ON q.id = r.pregunta_id
   LEFT JOIN cat_opcion o ON o.id = r.opcion_id
   WHERE t.estado = 'COMPLETA'
@@ -663,7 +669,7 @@ BEGIN
   SET @sql = CONCAT(
     'SELECT vr.visita_id, vr.fecha, vr.estado, vr.participante, vr.colonia, vr.trabajadora_social, ',
     'vr.ingreso_total, vr.apoyos_total, vr.egreso_total, vr.balance, vr.integrantes, ', v_cols,
-    ' FROM v_visita_resumen vr LEFT JOIN visita_respuesta r ON r.visita_id = vr.visita_id',
+    ' FROM v_visita_resumen vr LEFT JOIN v_respuesta_id r ON r.visita_id = vr.visita_id',
     ' LEFT JOIN cat_pregunta q ON q.id = r.pregunta_id LEFT JOIN cat_opcion o ON o.id = r.opcion_id',
     ' WHERE vr.fecha BETWEEN ? AND ?',
     ' GROUP BY vr.visita_id, vr.fecha, vr.estado, vr.participante, vr.colonia, vr.trabajadora_social,',
@@ -813,7 +819,8 @@ MODIFIES SQL DATA
 BEGIN
   IF p_correcto THEN
     UPDATE usuario_acceso SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = NOW() WHERE usuario_id = p_usuario_id;
-    INSERT INTO sesion (token_hash, usuario_id, dispositivo, ip) VALUES (p_token_hash, p_usuario_id, LEFT(p_dispositivo, 200), p_ip);
+    INSERT INTO sesion (token_hash, usuario_id, dispositivo, ip) VALUES (UNHEX(p_token_hash), p_usuario_id, LEFT(p_dispositivo, 200),
+            IF(IS_IPV4(p_ip) OR IS_IPV6(p_ip), INET6_ATON(p_ip), NULL));   -- IP en 4 o 16 bytes
   ELSE
     UPDATE usuario_acceso
        SET bloqueado_hasta = IF(intentos_fallidos + 1 >= 5, NOW() + INTERVAL 15 MINUTE, bloqueado_hasta),
@@ -827,17 +834,17 @@ CREATE PROCEDURE sp_sesion_validar(IN p_token_hash CHAR(64))
 MODIFIES SQL DATA
 BEGIN
   UPDATE sesion SET ultimo_uso = NOW()
-   WHERE token_hash = p_token_hash AND cerrada_en IS NULL AND ultimo_uso < NOW() - INTERVAL 5 MINUTE;
+   WHERE token_hash = UNHEX(p_token_hash) AND cerrada_en IS NULL AND ultimo_uso < NOW() - INTERVAL 5 MINUTE;
   SELECT u.id, u.nombre, u.rol, a.login, a.debe_cambiar,
          IF(fn_ve_todos(u.id), 'TODOS', 'ASIGNADOS') AS alcance, fn_permisos(u.id) AS permisos
   FROM sesion s JOIN usuario u ON u.id = s.usuario_id JOIN usuario_acceso a ON a.usuario_id = u.id
-  WHERE s.token_hash = p_token_hash AND s.cerrada_en IS NULL AND u.activo;
+  WHERE s.token_hash = UNHEX(p_token_hash) AND s.cerrada_en IS NULL AND u.activo;
 END //
 
 CREATE PROCEDURE sp_sesion_cerrar(IN p_token_hash CHAR(64))
 MODIFIES SQL DATA
 BEGIN
-  UPDATE sesion SET cerrada_en = NOW() WHERE token_hash = p_token_hash AND cerrada_en IS NULL;
+  UPDATE sesion SET cerrada_en = NOW() WHERE token_hash = UNHEX(p_token_hash) AND cerrada_en IS NULL;
 END //
 
 -- Alta (p_id NULL) o edición de un usuario. En el alta la contraseña es obligatoria.
@@ -918,7 +925,7 @@ BEGIN
   UPDATE usuario_acceso SET clave_hash = p_clave_hash, debe_cambiar = p_debe_cambiar, intentos_fallidos = 0, bloqueado_hasta = NULL
    WHERE usuario_id = p_id;
   UPDATE sesion SET cerrada_en = NOW()
-   WHERE usuario_id = p_id AND cerrada_en IS NULL AND token_hash <> COALESCE(p_token_conservar, '');
+   WHERE usuario_id = p_id AND cerrada_en IS NULL AND NOT (token_hash <=> UNHEX(p_token_conservar));
 END //
 
 -- Activar o desactivar. Desactivar cierra sus sesiones al momento.

@@ -436,7 +436,7 @@ BEGIN
          nivel_inicial_id     = (SELECT id FROM cat_nivel_educativo WHERE clave = v_nvi),
          grado_inicial        = IF(v_nvi IS NULL, NULL, COALESCE(fn_jnum(p_json, 'gri'), 1)),
          nivel_final_id       = (SELECT id FROM cat_nivel_educativo WHERE clave = v_nvf),
-         grado_final          = IF(v_nvf IS NULL, NULL, COALESCE(fn_jnum(p_json, 'gr'), (SELECT grados FROM cat_nivel_educativo WHERE clave = v_nvf))),
+         grado_final          = IF(v_nvf IS NULL, NULL, COALESCE(fn_jnum(p_json, 'gr'), (SELECT MAX(g.grado) FROM cat_nivel_grado g JOIN cat_nivel_educativo ne ON ne.id = g.nivel_id WHERE ne.clave = v_nvf))),
          riesgo_ingreso_id    = (SELECT id FROM cat_nivel_riesgo WHERE nombre = fn_j(p_json, 'rni')),
          riesgo_egreso_id     = (SELECT id FROM cat_nivel_riesgo WHERE nombre = fn_j(p_json, 'rne'))
    WHERE id = v_insc;
