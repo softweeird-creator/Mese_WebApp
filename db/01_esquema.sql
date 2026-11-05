@@ -16,6 +16,12 @@
 --    ingreso total, ingreso por integrante): lo calculan las vistas.
 --  * Las listas de opciones son tablas (cat_*), no texto libre, para que
 --    "UNIÓN LIBRE", "UNION LIBRE" y "UNIÓN LINRE" sean un solo valor.
+--  * Quinta forma normal: cada dato depende solo de la llave completa de
+--    su tabla y ninguna tabla se puede partir en otras más chicas sin
+--    perder información. Las listas fijas cortas son ENUM (1 byte; sus
+--    valores van en orden alfabético para que ORDER BY ordene igual que
+--    con texto) y los códigos que solo llevan letras y números van en
+--    ASCII (1 byte por carácter en lugar de hasta 4, también en índices).
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS mese
@@ -26,30 +32,36 @@ SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS bitacora, visita_firma, visita_antecedente, visita_monto, visita_vacuna,
-  visita_respuesta, visita_integrante, visita, cat_opcion, cat_pregunta, cat_seccion,
+  visita_respuesta_otro, visita_respuesta, visita_integrante, visita, cat_opcion, cat_pregunta, cat_seccion,
   participante_beca, participante_escolaridad, inscripcion_riesgo, inscripcion, participante,
   familia_integrante, familia, persona, sesion, usuario_acceso, usuario_permiso, usuario, cat_rol_permiso, cat_rol,
   cat_permiso, cat_rango_edad, cat_concepto_monto, cat_vacuna,
   cat_tipo_riesgo, cat_nivel_riesgo, cat_certificado, cat_caso_exito, cat_causa_baja_estadistica,
   cat_causa_baja, cat_patrocinador, cat_turno, cat_ciclo_escolar, cat_carrera, cat_escuela,
   cat_nivel_grado, cat_nivel_educativo, cat_tipo_sangre, cat_estado_civil, cat_ocupacion,
-  cat_parentesco, cat_colonia, cat_municipio, cat_alias;
+  cat_parentesco, cat_colonia, cat_municipio, cat_estado, cat_alias;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------------
 -- 1. Catálogos
 -- ---------------------------------------------------------------------
+CREATE TABLE cat_estado (
+  id      TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nombre  VARCHAR(40) NOT NULL UNIQUE                -- Michoacán, ...
+) ENGINE=InnoDB;
+
 CREATE TABLE cat_municipio (
-  id      SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nombre  VARCHAR(80) NOT NULL,
-  estado  VARCHAR(40) NOT NULL DEFAULT 'Michoacán',
-  UNIQUE KEY uq_municipio (nombre, estado)
+  id         SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nombre     VARCHAR(80) NOT NULL,
+  estado_id  TINYINT UNSIGNED NOT NULL,
+  UNIQUE KEY uq_municipio (nombre, estado_id),
+  CONSTRAINT fk_municipio_estado FOREIGN KEY (estado_id) REFERENCES cat_estado(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE cat_colonia (
   id             SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   nombre         VARCHAR(100) NOT NULL,
-  codigo_postal  CHAR(5) NULL,
+  codigo_postal  CHAR(5) CHARACTER SET ascii NULL,
   municipio_id   SMALLINT UNSIGNED NOT NULL,
   UNIQUE KEY uq_colonia (nombre, municipio_id),
   CONSTRAINT ck_colonia_cp CHECK (codigo_postal REGEXP '^[0-9]{5}$'),
@@ -79,11 +91,10 @@ CREATE TABLE cat_tipo_sangre (
 
 CREATE TABLE cat_nivel_educativo (
   id          TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  clave       VARCHAR(10) NOT NULL UNIQUE,      -- PREESC, PRIM, SEC, PREPA, TEC, OFICIO, LIC...
+  clave       VARCHAR(10) CHARACTER SET ascii NOT NULL UNIQUE,  -- PREESC, PRIM, SEC, PREPA, TEC, OFICIO, LIC...
   nombre      VARCHAR(40) NOT NULL UNIQUE,
-  grados      TINYINT UNSIGNED NOT NULL,        -- grados que tiene el nivel
-  orden       TINYINT UNSIGNED NOT NULL,
-  CONSTRAINT ck_nivel_grados CHECK (grados BETWEEN 1 AND 6)
+  orden       TINYINT UNSIGNED NOT NULL
+  -- Cuántos grados tiene el nivel no se guarda aquí: es el mayor grado en cat_nivel_grado.
 ) ENGINE=InnoDB;
 
 -- Grados válidos por nivel (Primaria 1–6, Secundaria 1–3, ...).
@@ -99,7 +110,7 @@ CREATE TABLE cat_escuela (
   id        SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   nombre    VARCHAR(150) NOT NULL UNIQUE,
   nivel_id  TINYINT UNSIGNED NULL,
-  cct       VARCHAR(12) NULL UNIQUE,            -- clave de centro de trabajo SEP, si se conoce
+  cct       CHAR(10) CHARACTER SET ascii NULL UNIQUE,  -- clave de centro de trabajo SEP (10 caracteres), si se conoce
   CONSTRAINT fk_escuela_nivel FOREIGN KEY (nivel_id) REFERENCES cat_nivel_educativo(id)
 ) ENGINE=InnoDB;
 
@@ -110,7 +121,7 @@ CREATE TABLE cat_carrera (                      -- carrera, bachillerato u ofici
 
 CREATE TABLE cat_ciclo_escolar (
   id      SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nombre  CHAR(9) NOT NULL UNIQUE,              -- 2025-2026
+  nombre  CHAR(9) CHARACTER SET ascii NOT NULL UNIQUE,  -- 2025-2026
   inicio  DATE NOT NULL,
   fin     DATE NOT NULL,
   CONSTRAINT ck_ciclo_fechas CHECK (fin > inicio),
@@ -165,19 +176,18 @@ CREATE TABLE cat_vacuna (
 
 CREATE TABLE cat_concepto_monto (               -- ingreso declarado, apoyos gubernamentales y egresos del hogar
   id      TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  clave   VARCHAR(10) NOT NULL UNIQUE,          -- la misma clave que usa la página web (ap_bj, eg_renta...)
-  tipo    VARCHAR(7) NOT NULL,
+  clave   VARCHAR(10) CHARACTER SET ascii NOT NULL UNIQUE,  -- la misma clave que usa la página web (ap_bj, eg_renta...)
+  tipo    ENUM('APOYO','EGRESO','INGRESO') NOT NULL,
   nombre  VARCHAR(90) NOT NULL,
   orden   TINYINT UNSIGNED NOT NULL,
-  UNIQUE KEY uq_concepto (tipo, nombre),
-  CONSTRAINT ck_concepto_tipo CHECK (tipo IN ('INGRESO','APOYO','EGRESO'))
+  UNIQUE KEY uq_concepto (tipo, nombre)
 ) ENGINE=InnoDB;
 
 -- Rangos de edad de la hoja de estadísticas: son datos, no código.
 -- Si MESE cambia un rango, se edita aquí y todos los reportes cambian.
 CREATE TABLE cat_rango_edad (
   id        TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  grupo     VARCHAR(20) NOT NULL,               -- DIRECTOS, TUTORES, RANGOS_TUTORES, INDIRECTOS
+  grupo     ENUM('DIRECTOS','INDIRECTOS','RANGOS_TUTORES','TUTORES') NOT NULL,
   etiqueta  VARCHAR(15) NOT NULL,
   edad_min  TINYINT UNSIGNED NOT NULL,
   edad_max  TINYINT UNSIGNED NOT NULL,
@@ -201,26 +211,24 @@ CREATE TABLE cat_alias (
 -- Qué puede ver o hacer cada persona en la página. ADMIN (la administración
 -- principal) siempre puede todo; a los demás el administrador les elige permisos.
 CREATE TABLE cat_permiso (
-  clave   VARCHAR(20) PRIMARY KEY,                   -- VER_ACTIVOS, EDITAR...
+  clave   VARCHAR(20) CHARACTER SET ascii PRIMARY KEY,  -- VER_ACTIVOS, EDITAR...
   nombre  VARCHAR(100) NOT NULL,
-  tipo    CHAR(5) NOT NULL,                          -- VER = una sección; HACER = una acción
-  orden   TINYINT UNSIGNED NOT NULL,
-  CONSTRAINT ck_permiso_tipo CHECK (tipo IN ('VER','HACER'))
+  tipo    ENUM('HACER','VER') NOT NULL,                 -- VER = una sección; HACER = una acción
+  orden   TINYINT UNSIGNED NOT NULL
 ) ENGINE=InnoDB;
 
 -- Roles: un punto de partida. Al elegir un rol se marcan sus permisos sugeridos,
 -- y el administrador puede quitar o agregar permisos a cada persona.
 CREATE TABLE cat_rol (
-  clave    VARCHAR(20) PRIMARY KEY,
+  clave    VARCHAR(20) CHARACTER SET ascii PRIMARY KEY,
   nombre   VARCHAR(60) NOT NULL,
-  alcance  VARCHAR(10) NOT NULL,                     -- alcance sugerido
-  orden    TINYINT UNSIGNED NOT NULL,
-  CONSTRAINT ck_rol_alcance CHECK (alcance IN ('TODOS','ASIGNADOS'))
+  alcance  ENUM('ASIGNADOS','TODOS') NOT NULL,       -- alcance sugerido
+  orden    TINYINT UNSIGNED NOT NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE cat_rol_permiso (
-  rol      VARCHAR(20) NOT NULL,
-  permiso  VARCHAR(20) NOT NULL,
+  rol      VARCHAR(20) CHARACTER SET ascii NOT NULL,
+  permiso  VARCHAR(20) CHARACTER SET ascii NOT NULL,
   PRIMARY KEY (rol, permiso),
   CONSTRAINT fk_rolp_rol FOREIGN KEY (rol) REFERENCES cat_rol(clave) ON DELETE CASCADE,
   CONSTRAINT fk_rolp_permiso FOREIGN KEY (permiso) REFERENCES cat_permiso(clave) ON DELETE CASCADE
@@ -230,18 +238,17 @@ CREATE TABLE usuario (
   id        SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   nombre    VARCHAR(100) NOT NULL,
   correo    VARCHAR(120) NULL UNIQUE,
-  rol       VARCHAR(20)  NOT NULL DEFAULT 'TRABAJO_SOCIAL',
+  rol       VARCHAR(20) CHARACTER SET ascii NOT NULL DEFAULT 'TRABAJO_SOCIAL',
   -- TODOS = ve a todos los participantes; ASIGNADOS = solo a los que tiene asignados y sus familias
-  alcance   VARCHAR(10)  NOT NULL DEFAULT 'TODOS',
+  alcance   ENUM('ASIGNADOS','TODOS') NOT NULL DEFAULT 'TODOS',
   activo    BOOLEAN NOT NULL DEFAULT TRUE,
-  CONSTRAINT ck_usuario_alcance CHECK (alcance IN ('TODOS','ASIGNADOS')),
   CONSTRAINT fk_usuario_rol FOREIGN KEY (rol) REFERENCES cat_rol(clave)
 ) ENGINE=InnoDB;
 
 -- Permisos de cada persona (los de ADMIN no se guardan: siempre son todos)
 CREATE TABLE usuario_permiso (
   usuario_id  SMALLINT UNSIGNED NOT NULL,
-  permiso     VARCHAR(20) NOT NULL,
+  permiso     VARCHAR(20) CHARACTER SET ascii NOT NULL,
   PRIMARY KEY (usuario_id, permiso),
   CONSTRAINT fk_usup_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
   CONSTRAINT fk_usup_permiso FOREIGN KEY (permiso) REFERENCES cat_permiso(clave) ON DELETE CASCADE
@@ -251,8 +258,8 @@ CREATE TABLE usuario_permiso (
 -- quien solo puede leer "usuario" (reportes) nunca vea las contraseñas.
 CREATE TABLE usuario_acceso (
   usuario_id         SMALLINT UNSIGNED PRIMARY KEY,
-  login              VARCHAR(40)  NOT NULL UNIQUE,      -- con lo que entra: "admin", "mlopez"
-  clave_hash         VARCHAR(255) NOT NULL,             -- argon2id; nunca la contraseña real
+  login              VARCHAR(40)  CHARACTER SET ascii NOT NULL UNIQUE,  -- con lo que entra: "admin", "mlopez"
+  clave_hash         VARCHAR(128) CHARACTER SET ascii NOT NULL,         -- argon2id (~97 caracteres); nunca la contraseña real
   debe_cambiar       BOOLEAN NOT NULL DEFAULT TRUE,     -- contraseña temporal puesta por el administrador
   intentos_fallidos  TINYINT UNSIGNED NOT NULL DEFAULT 0,
   bloqueado_hasta    DATETIME NULL,                     -- tras 5 intentos fallidos, 15 minutos
@@ -263,12 +270,12 @@ CREATE TABLE usuario_acceso (
 
 -- Sesiones abiertas. Duran hasta que la persona sale o el administrador las cierra.
 CREATE TABLE sesion (
-  token_hash   CHAR(64) PRIMARY KEY,                    -- SHA-256 del valor de la cookie
+  token_hash   BINARY(32) PRIMARY KEY,                  -- SHA-256 del valor de la cookie (32 bytes; los procedimientos reciben el hexadecimal)
   usuario_id   SMALLINT UNSIGNED NOT NULL,
   creada       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ultimo_uso   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   dispositivo  VARCHAR(200) NULL,
-  ip           VARCHAR(45) NULL,
+  ip           VARBINARY(16) NULL,                      -- INET6_ATON(): 4 bytes IPv4, 16 bytes IPv6
   cerrada_en   DATETIME NULL,
   KEY ix_sesion_usuario (usuario_id, cerrada_en),
   CONSTRAINT fk_sesion_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
@@ -284,24 +291,25 @@ CREATE TABLE persona (
   apellido_materno   VARCHAR(60)  NULL,
   fecha_nacimiento   DATE NULL,
   fecha_nac_aprox    BOOLEAN NOT NULL DEFAULT FALSE,   -- TRUE si solo se sabía la edad
-  genero             CHAR(1) NULL,
-  curp               CHAR(18) NULL,
+  genero             CHAR(1) CHARACTER SET ascii NULL,  -- F, M u O (otro). 1 byte; CHECK y no ENUM para que un valor inválido dé un error que los procedimientos atrapan
+  curp               CHAR(18) CHARACTER SET ascii NULL,
   tipo_sangre_id     TINYINT UNSIGNED NULL,
   estado_civil_id    TINYINT UNSIGNED NULL,
   ocupacion_id       SMALLINT UNSIGNED NULL,
   escolaridad_nivel_id TINYINT UNSIGNED NULL,          -- último nivel cursado (adultos)
   escolaridad_grado  TINYINT UNSIGNED NULL,
   escolaridad_nota   VARCHAR(120) NULL,                -- "trunca", "INEA", "carrera técnica en..."
-  telefono           VARCHAR(15) NULL,
+  telefono           VARCHAR(15) NULL,                 -- el trigger lo deja en 10 dígitos
   correo             VARCHAR(120) NULL,
-  nombre_completo    VARCHAR(210) AS (CONCAT_WS(' ', nombres, apellido_paterno, apellido_materno)) STORED,
+  -- Se calcula al leer (VIRTUAL): no ocupa lugar en la fila; su índice permite buscar por nombre completo.
+  nombre_completo    VARCHAR(210) AS (CONCAT_WS(' ', nombres, apellido_paterno, apellido_materno)) VIRTUAL,
   creado_en          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   modificado_en      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_persona_curp (curp),
   KEY ix_persona_apellidos (apellido_paterno, apellido_materno, nombres),
   KEY ix_persona_nombre_completo (nombre_completo),
   KEY ix_persona_nacimiento (fecha_nacimiento),
-  CONSTRAINT ck_persona_genero CHECK (genero IN ('F','M')),
+  CONSTRAINT ck_persona_genero CHECK (genero IN ('F','M','O')),
   CONSTRAINT ck_persona_curp CHECK (curp = UPPER(curp) AND curp REGEXP '^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$'),
   CONSTRAINT ck_persona_tel CHECK (telefono REGEXP '^[0-9]{10}$'),
   CONSTRAINT ck_persona_correo CHECK (correo LIKE '%_@_%._%'),
@@ -310,6 +318,7 @@ CREATE TABLE persona (
   CONSTRAINT fk_persona_civil FOREIGN KEY (estado_civil_id) REFERENCES cat_estado_civil(id),
   CONSTRAINT fk_persona_ocupacion FOREIGN KEY (ocupacion_id) REFERENCES cat_ocupacion(id),
   CONSTRAINT fk_persona_escolaridad FOREIGN KEY (escolaridad_nivel_id, escolaridad_grado) REFERENCES cat_nivel_grado(nivel_id, grado),
+  -- La compuesta de arriba no se revisa cuando falta el grado; esta cuida el nivel solo.
   CONSTRAINT fk_persona_nivel FOREIGN KEY (escolaridad_nivel_id) REFERENCES cat_nivel_educativo(id)
 ) ENGINE=InnoDB;
 
@@ -407,17 +416,15 @@ CREATE TABLE inscripcion (
 
 CREATE TABLE inscripcion_riesgo (                     -- "ECONÓMICO/EMOCIONAL" = dos filas
   inscripcion_id  INT UNSIGNED NOT NULL,
-  momento         CHAR(7) NOT NULL,
+  momento         ENUM('EGRESO','INGRESO') NOT NULL,
   tipo_riesgo_id  TINYINT UNSIGNED NOT NULL,
   PRIMARY KEY (inscripcion_id, momento, tipo_riesgo_id),
-  CONSTRAINT ck_riesgo_momento CHECK (momento IN ('INGRESO','EGRESO')),
   CONSTRAINT fk_riesgo_insc FOREIGN KEY (inscripcion_id) REFERENCES inscripcion(id) ON DELETE CASCADE,
   CONSTRAINT fk_riesgo_tipo FOREIGN KEY (tipo_riesgo_id) REFERENCES cat_tipo_riesgo(id)
 ) ENGINE=InnoDB;
 
 -- Escuela y grado por ciclo escolar (historial completo, no solo el actual).
 CREATE TABLE participante_escolaridad (
-  id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   participante_id  INT UNSIGNED NOT NULL,
   ciclo_id         SMALLINT UNSIGNED NOT NULL,
   escuela_id       SMALLINT UNSIGNED NULL,
@@ -426,7 +433,7 @@ CREATE TABLE participante_escolaridad (
   carrera_id       SMALLINT UNSIGNED NULL,
   grupo            VARCHAR(12) NULL,
   turno_id         TINYINT UNSIGNED NULL,
-  UNIQUE KEY uq_escolaridad_ciclo (participante_id, ciclo_id),
+  PRIMARY KEY (participante_id, ciclo_id),          -- una fila por participante y ciclo (sin id aparte)
   KEY ix_escolaridad_nivel (nivel_id, grado),
   CONSTRAINT fk_esc_participante FOREIGN KEY (participante_id) REFERENCES participante(persona_id) ON DELETE CASCADE,
   CONSTRAINT fk_esc_ciclo FOREIGN KEY (ciclo_id) REFERENCES cat_ciclo_escolar(id),
@@ -461,13 +468,12 @@ CREATE TABLE cat_seccion (
 CREATE TABLE cat_pregunta (
   id           SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   seccion_id   TINYINT UNSIGNED NOT NULL,
-  clave        VARCHAR(20) NOT NULL UNIQUE,     -- la misma clave que usa la página web (casa, serv, piso...)
+  clave        VARCHAR(20) CHARACTER SET ascii NOT NULL UNIQUE,  -- la misma clave que usa la página web (casa, serv, piso...)
   texto        VARCHAR(160) NOT NULL,
-  tipo         VARCHAR(8) NOT NULL,             -- UNICA = una respuesta, MULTIPLE = varias
+  tipo         ENUM('MULTIPLE','UNICA') NOT NULL,  -- UNICA = una respuesta, MULTIPLE = varias
   permite_otro BOOLEAN NOT NULL DEFAULT FALSE,
   orden        SMALLINT UNSIGNED NOT NULL,
   activa       BOOLEAN NOT NULL DEFAULT TRUE,
-  CONSTRAINT ck_pregunta_tipo CHECK (tipo IN ('UNICA','MULTIPLE')),
   CONSTRAINT fk_pregunta_seccion FOREIGN KEY (seccion_id) REFERENCES cat_seccion(id)
 ) ENGINE=InnoDB;
 
@@ -477,22 +483,21 @@ CREATE TABLE cat_opcion (
   etiqueta     VARCHAR(60) NOT NULL,
   orden        TINYINT UNSIGNED NOT NULL,
   UNIQUE KEY uq_opcion (pregunta_id, etiqueta),
-  UNIQUE KEY uq_opcion_pregunta (id, pregunta_id),      -- permite la llave foránea compuesta de abajo
   CONSTRAINT fk_opcion_pregunta FOREIGN KEY (pregunta_id) REFERENCES cat_pregunta(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE visita (
   id                    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  uuid_cliente          VARCHAR(40) NULL UNIQUE,  -- id creado en el teléfono (sincronizar sin duplicar)
+  uuid_cliente          VARCHAR(40) CHARACTER SET ascii NULL UNIQUE,  -- id creado en el teléfono (sincronizar sin duplicar)
   familia_id            INT UNSIGNED NOT NULL,
   participante_id       INT UNSIGNED NULL,
   usuario_id            SMALLINT UNSIGNED NULL,   -- trabajadora social que la hizo
   fecha                 DATE NOT NULL,
   folio_seguimiento     VARCHAR(20) NULL,
   cuadrante             VARCHAR(20) NULL,
-  estado                VARCHAR(9) NOT NULL DEFAULT 'BORRADOR',
-  verificada_en         VARCHAR(9) NULL,
-  origen                VARCHAR(10) NOT NULL DEFAULT 'WEB',
+  estado                ENUM('BORRADOR','COMPLETA') NOT NULL DEFAULT 'BORRADOR',
+  verificada_en         ENUM('DOMICILIO','OFICINA') NULL,
+  origen                ENUM('EXCEL','OFICINA','WEB') NOT NULL DEFAULT 'WEB',
   recamaras             TINYINT UNSIGNED NULL,
   banos                 TINYINT UNSIGNED NULL,
   num_integrantes       TINYINT UNSIGNED NULL,    -- solo si no se capturó la lista (datos importados)
@@ -515,43 +520,46 @@ CREATE TABLE visita (
   KEY ix_visita_familia_fecha (familia_id, fecha),
   KEY ix_visita_fecha (fecha),
   KEY ix_visita_usuario (usuario_id, fecha),
-  CONSTRAINT ck_visita_estado CHECK (estado IN ('BORRADOR','COMPLETA')),
-  CONSTRAINT ck_visita_verif CHECK (verificada_en IN ('DOMICILIO','OFICINA')),
-  CONSTRAINT ck_visita_origen CHECK (origen IN ('WEB','EXCEL','OFICINA')),
   CONSTRAINT ck_visita_gps CHECK (latitud BETWEEN -90 AND 90 AND longitud BETWEEN -180 AND 180),
   CONSTRAINT fk_visita_familia FOREIGN KEY (familia_id) REFERENCES familia(id),
   CONSTRAINT fk_visita_participante FOREIGN KEY (participante_id) REFERENCES participante(persona_id),
   CONSTRAINT fk_visita_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 ) ENGINE=InnoDB;
 
--- Respuestas de opción. La llave compuesta (opcion_id, pregunta_id) garantiza que la opción
--- pertenece a esa pregunta: no se puede contestar "Vitropiso" a "¿Cuántas comidas al día?".
+-- Respuestas de opción. La pregunta no se guarda: la da la opción (cat_opcion.pregunta_id),
+-- así que no se puede contestar "Vitropiso" a "¿Cuántas comidas al día?".
 CREATE TABLE visita_respuesta (
-  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  visita_id    INT UNSIGNED NOT NULL,
+  opcion_id    SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (visita_id, opcion_id),
+  KEY ix_respuesta_opcion (opcion_id),
+  CONSTRAINT fk_resp_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE,
+  CONSTRAINT fk_resp_opcion FOREIGN KEY (opcion_id) REFERENCES cat_opcion(id)
+) ENGINE=InnoDB;
+
+-- Respuestas escritas ("Otro, ¿cuál?"): a lo más una por pregunta en cada visita.
+CREATE TABLE visita_respuesta_otro (
   visita_id    INT UNSIGNED NOT NULL,
   pregunta_id  SMALLINT UNSIGNED NOT NULL,
-  opcion_id    SMALLINT UNSIGNED NULL,          -- NULL cuando la respuesta es "Otro" escrito
-  texto_otro   VARCHAR(120) NULL,
-  UNIQUE KEY uq_respuesta (visita_id, pregunta_id, opcion_id),
-  KEY ix_respuesta_opcion (opcion_id),
-  CONSTRAINT ck_respuesta_valor CHECK (opcion_id IS NOT NULL OR texto_otro IS NOT NULL),
-  CONSTRAINT fk_resp_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE,
-  CONSTRAINT fk_resp_pregunta FOREIGN KEY (pregunta_id) REFERENCES cat_pregunta(id),
-  CONSTRAINT fk_resp_opcion FOREIGN KEY (opcion_id, pregunta_id) REFERENCES cat_opcion(id, pregunta_id)
+  texto_otro   VARCHAR(120) NOT NULL,
+  PRIMARY KEY (visita_id, pregunta_id),
+  CONSTRAINT ck_respuesta_otro CHECK (TRIM(texto_otro) <> ''),
+  CONSTRAINT fk_resp_otro_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE,
+  CONSTRAINT fk_resp_otro_pregunta FOREIGN KEY (pregunta_id) REFERENCES cat_pregunta(id)
 ) ENGINE=InnoDB;
 
 -- Quién vive en la casa al momento de la visita y cuánto gana (sección 2).
+-- El parentesco no se repite aquí: está en familia_integrante (familia de la visita + persona).
+-- La ocupación sí, porque es la de la fecha de la visita y puede cambiar.
 CREATE TABLE visita_integrante (
   visita_id        INT UNSIGNED NOT NULL,
   persona_id       INT UNSIGNED NOT NULL,
-  parentesco_id    TINYINT UNSIGNED NULL,
   ocupacion_id     SMALLINT UNSIGNED NULL,
   ingreso_mensual  DECIMAL(10,2) NOT NULL DEFAULT 0,
   PRIMARY KEY (visita_id, persona_id),
   CONSTRAINT ck_vi_ingreso CHECK (ingreso_mensual >= 0),
   CONSTRAINT fk_vi_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE,
   CONSTRAINT fk_vi_persona FOREIGN KEY (persona_id) REFERENCES persona(id),
-  CONSTRAINT fk_vi_parentesco FOREIGN KEY (parentesco_id) REFERENCES cat_parentesco(id),
   CONSTRAINT fk_vi_ocupacion FOREIGN KEY (ocupacion_id) REFERENCES cat_ocupacion(id)
 ) ENGINE=InnoDB;
 
@@ -570,17 +578,19 @@ CREATE TABLE visita_monto (
 CREATE TABLE visita_vacuna (                      -- COVID-19 y sarampión, participante y tutor
   visita_id   INT UNSIGNED NOT NULL,
   vacuna_id   TINYINT UNSIGNED NOT NULL,
-  rol         VARCHAR(12) NOT NULL,
+  rol         ENUM('PARTICIPANTE','TUTOR') NOT NULL,
   aplicada    BOOLEAN NOT NULL,
   dosis       TINYINT UNSIGNED NULL,
   PRIMARY KEY (visita_id, vacuna_id, rol),
-  CONSTRAINT ck_vacuna_rol CHECK (rol IN ('PARTICIPANTE','TUTOR')),
   CONSTRAINT ck_vacuna_dosis CHECK (dosis <= 10 AND (aplicada OR dosis IS NULL OR dosis = 0)),
   CONSTRAINT fk_vac_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE,
   CONSTRAINT fk_vac_vacuna FOREIGN KEY (vacuna_id) REFERENCES cat_vacuna(id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE visita_antecedente (                 -- antecedentes médicos familiares (sección 8)
+-- Antecedentes médicos familiares (sección 8). Si la persona ya está registrada se guarda
+-- solo persona_id (su nombre y parentesco ya están en persona y familia_integrante); si no,
+-- el nombre y parentesco como se escribieron. Nunca los dos: así no se repite ni se contradice.
+CREATE TABLE visita_antecedente (
   id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   visita_id        INT UNSIGNED NOT NULL,
   persona_id       INT UNSIGNED NULL,
@@ -588,6 +598,7 @@ CREATE TABLE visita_antecedente (                 -- antecedentes médicos famil
   parentesco_id    TINYINT UNSIGNED NULL,
   enfermedad       VARCHAR(150) NOT NULL,
   atencion_medica  VARCHAR(100) NULL,
+  CONSTRAINT ck_ant_persona CHECK (persona_id IS NULL OR (nombre_completo IS NULL AND parentesco_id IS NULL)),
   CONSTRAINT fk_ant_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE,
   CONSTRAINT fk_ant_persona FOREIGN KEY (persona_id) REFERENCES persona(id),
   CONSTRAINT fk_ant_parentesco FOREIGN KEY (parentesco_id) REFERENCES cat_parentesco(id)
@@ -595,11 +606,10 @@ CREATE TABLE visita_antecedente (                 -- antecedentes médicos famil
 
 CREATE TABLE visita_firma (                       -- separado para que la tabla visita sea ligera
   visita_id  INT UNSIGNED NOT NULL,
-  rol        VARCHAR(12) NOT NULL,
+  rol        ENUM('TRABAJADORA','TUTOR') NOT NULL,
   nombre     VARCHAR(160) NULL,
   imagen     MEDIUMBLOB NULL,                     -- PNG de la firma hecha con el dedo
   PRIMARY KEY (visita_id, rol),
-  CONSTRAINT ck_firma_rol CHECK (rol IN ('TRABAJADORA','TUTOR')),
   CONSTRAINT fk_firma_visita FOREIGN KEY (visita_id) REFERENCES visita(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -608,14 +618,13 @@ CREATE TABLE visita_firma (                       -- separado para que la tabla 
 -- ---------------------------------------------------------------------
 CREATE TABLE bitacora (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  tabla       VARCHAR(40) NOT NULL,
-  registro_id VARCHAR(40) NOT NULL,
-  accion      CHAR(6) NOT NULL,
+  tabla       VARCHAR(40) CHARACTER SET ascii NOT NULL,
+  registro_id VARCHAR(40) CHARACTER SET ascii NOT NULL,
+  accion      ENUM('DELETE','INSERT','UPDATE') NOT NULL,
   usuario_id  SMALLINT UNSIGNED NULL,            -- @usuario_id que fija la aplicación al conectarse
   fecha       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   antes       JSON NULL,
   despues     JSON NULL,
   KEY ix_bitacora_registro (tabla, registro_id),
-  KEY ix_bitacora_fecha (fecha),
-  CONSTRAINT ck_bitacora_accion CHECK (accion IN ('INSERT','UPDATE','DELETE'))
+  KEY ix_bitacora_fecha (fecha)
 ) ENGINE=InnoDB;

@@ -20,6 +20,7 @@ DROP TRIGGER IF EXISTS trg_inscripcion_ai;
 DROP TRIGGER IF EXISTS trg_inscripcion_au;
 DROP TRIGGER IF EXISTS trg_inscripcion_ad;
 DROP TRIGGER IF EXISTS trg_respuesta_bi;
+DROP TRIGGER IF EXISTS trg_respuesta_otro_bi;
 DROP TRIGGER IF EXISTS trg_visita_bi;
 DROP TRIGGER IF EXISTS trg_visita_bu;
 DROP TRIGGER IF EXISTS trg_visita_au;
@@ -95,14 +96,29 @@ END //
 -- ---------------------------------------------------------------------
 CREATE TRIGGER trg_respuesta_bi BEFORE INSERT ON visita_respuesta FOR EACH ROW
 BEGIN
-  DECLARE v_tipo VARCHAR(8); DECLARE v_otro BOOLEAN; DECLARE v_texto VARCHAR(160);
-  SELECT tipo, permite_otro, texto INTO v_tipo, v_otro, v_texto FROM cat_pregunta WHERE id = NEW.pregunta_id;
-  IF v_tipo = 'UNICA' AND EXISTS (SELECT 1 FROM visita_respuesta WHERE visita_id = NEW.visita_id AND pregunta_id = NEW.pregunta_id) THEN
+  DECLARE v_preg SMALLINT UNSIGNED; DECLARE v_tipo VARCHAR(8); DECLARE v_texto VARCHAR(160);
+  SELECT q.id, q.tipo, q.texto INTO v_preg, v_tipo, v_texto
+    FROM cat_opcion o JOIN cat_pregunta q ON q.id = o.pregunta_id WHERE o.id = NEW.opcion_id;
+  IF v_tipo = 'UNICA' AND (
+       EXISTS (SELECT 1 FROM visita_respuesta r JOIN cat_opcion o ON o.id = r.opcion_id
+                WHERE r.visita_id = NEW.visita_id AND o.pregunta_id = v_preg)
+    OR EXISTS (SELECT 1 FROM visita_respuesta_otro WHERE visita_id = NEW.visita_id AND pregunta_id = v_preg)) THEN
     SET v_texto = CONCAT('La pregunta "', LEFT(v_texto, 80), '" admite una sola respuesta.');
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_texto;
   END IF;
-  IF NEW.opcion_id IS NULL AND NOT v_otro AND (SELECT clave FROM cat_pregunta WHERE id = NEW.pregunta_id) <> 'adi_o' THEN
+END //
+
+CREATE TRIGGER trg_respuesta_otro_bi BEFORE INSERT ON visita_respuesta_otro FOR EACH ROW
+BEGIN
+  DECLARE v_tipo VARCHAR(8); DECLARE v_otro BOOLEAN; DECLARE v_clave VARCHAR(20); DECLARE v_texto VARCHAR(160);
+  SELECT tipo, permite_otro, clave, texto INTO v_tipo, v_otro, v_clave, v_texto FROM cat_pregunta WHERE id = NEW.pregunta_id;
+  IF NOT v_otro AND v_clave <> 'adi_o' THEN
     SET v_texto = CONCAT('La pregunta "', LEFT(v_texto, 80), '" no acepta respuestas escritas ("Otro").');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_texto;
+  END IF;
+  IF v_tipo = 'UNICA' AND EXISTS (SELECT 1 FROM visita_respuesta r JOIN cat_opcion o ON o.id = r.opcion_id
+                                   WHERE r.visita_id = NEW.visita_id AND o.pregunta_id = NEW.pregunta_id) THEN
+    SET v_texto = CONCAT('La pregunta "', LEFT(v_texto, 80), '" admite una sola respuesta.');
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_texto;
   END IF;
 END //

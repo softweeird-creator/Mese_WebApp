@@ -7,6 +7,7 @@ USE mese;
 SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;   -- misma intercalación que la base
 
 DROP FUNCTION IF EXISTS fn_edad;
+DROP FUNCTION IF EXISTS fn_genero_pagina;
 DROP FUNCTION IF EXISTS fn_ciclo;
 DROP FUNCTION IF EXISTS fn_puede;
 DROP FUNCTION IF EXISTS fn_permisos;
@@ -15,6 +16,14 @@ DROP FUNCTION IF EXISTS fn_ve_participante;
 DROP FUNCTION IF EXISTS fn_ve_familia;
 
 DELIMITER //
+-- Género como lo escribe la página → letra de la base (F, M u O).
+-- Acepta también "Mujer" y "Hombre", que usaban las versiones anteriores y las visitas ya guardadas.
+CREATE FUNCTION fn_genero_pagina(p TEXT) RETURNS CHAR(1) CHARACTER SET ascii
+DETERMINISTIC NO SQL
+RETURN CASE WHEN p IN ('Femenino', 'Mujer', 'F') THEN 'F'
+            WHEN p IN ('Masculino', 'Hombre', 'M') THEN 'M'
+            WHEN p = 'Otro' THEN 'O' END //
+
 -- Edad cumplida en una fecha dada (para estadísticas de meses pasados)
 CREATE FUNCTION fn_edad(p_nacimiento DATE, p_al DATE) RETURNS SMALLINT
 DETERMINISTIC NO SQL
@@ -154,6 +163,9 @@ SELECT * FROM v_participante WHERE estado = 'ACTIVO';
 -- Panel "Bajas": su periodo más reciente está cerrado
 CREATE OR REPLACE VIEW v_baja AS
 SELECT vp.persona_id, vp.nombre_completo, vp.genero, vp.edad, vp.nivel, vp.grado, vp.colonia,
+       vp.curp, vp.fecha_nacimiento, vp.tipo_sangre, vp.telefono, vp.correo_familia, vp.aviso_privacidad, vp.domicilio,
+       vp.tutor, vp.parentesco_tutor, vp.telefono_tutor, vp.escuela, vp.carrera, vp.grupo, vp.turno,
+       vp.numero_becado, vp.grupo_beca, vp.becas,
        ia.fecha_ingreso, ia.fecha_baja, cb.nombre AS causa_baja, ce.nombre AS causa_estadistica, ia.motivo,
        ia.id AS inscripcion_id, vp.familia_id, vp.trabajadora_id, vp.trabajadora_social,
        cx.nombre AS caso_exito, ct.nombre AS certificado, nr.nombre AS nivel_riesgo_egreso
@@ -252,11 +264,19 @@ LEFT JOIN (SELECT visita_id, SUM(ingreso_mensual) AS ingreso, COUNT(*) AS integr
 LEFT JOIN (SELECT vm.visita_id, SUM(IF(c.tipo = 'INGRESO', vm.monto, 0)) AS ingreso_declarado, SUM(IF(c.tipo = 'APOYO', vm.monto, 0)) AS apoyos, SUM(IF(c.tipo = 'EGRESO', vm.monto, 0)) AS egresos
              FROM visita_monto vm JOIN cat_concepto_monto c ON c.id = vm.concepto_id GROUP BY vm.visita_id) mon ON mon.visita_id = v.id;
 
+-- Todas las respuestas de una visita juntas: las de opción (la pregunta sale de la opción)
+-- y las escritas ("Otro"). Una fila por respuesta.
+CREATE OR REPLACE VIEW v_respuesta_id AS
+SELECT r.visita_id, o.pregunta_id, r.opcion_id, CAST(NULL AS CHAR(120)) AS texto_otro
+FROM visita_respuesta r JOIN cat_opcion o ON o.id = r.opcion_id
+UNION ALL
+SELECT visita_id, pregunta_id, NULL, texto_otro FROM visita_respuesta_otro;
+
 -- Respuestas en forma legible (una fila por respuesta)
 CREATE OR REPLACE VIEW v_respuesta AS
 SELECT r.visita_id, q.seccion_id, s.nombre AS seccion, q.clave, q.texto AS pregunta,
        COALESCE(o.etiqueta, CONCAT('Otro: ', r.texto_otro)) AS respuesta, o.orden
-FROM visita_respuesta r
+FROM v_respuesta_id r
 JOIN cat_pregunta q ON q.id = r.pregunta_id
 JOIN cat_seccion s  ON s.id = q.seccion_id
 LEFT JOIN cat_opcion o ON o.id = r.opcion_id;

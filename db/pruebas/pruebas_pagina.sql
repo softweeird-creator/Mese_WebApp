@@ -65,6 +65,12 @@ BEGIN
     (SELECT CONCAT_WS(' ', fn_edad(fecha_nacimiento, CURDATE()), fecha_nac_aprox) FROM persona WHERE id = v_luis));
   CALL sp_pagina_activo(v_ts, v_luis, '{"n":"Luis Zzpag Mora","g":"Hombre","ed":12,"nv":"Secundaria","gr":2}', @x);
   CALL _afirmar('trabajo social edita a los suyos', 'Secundaria 2', (SELECT CONCAT_WS(' ', nivel, grado) FROM v_activo WHERE persona_id = v_luis));
+  CALL sp_pagina_activo(v_admin, NULL, '{"n":"Alex Zzpag Otro","g":"Otro","ed":17,"nv":"Oficio","gr":2,"car":"Belleza"}', @x);
+  CALL _afirmar('género "Otro" y nivel Oficio', 'O Oficio 2 Belleza',
+    (SELECT CONCAT_WS(' ', genero, nivel, grado, carrera) FROM v_activo WHERE persona_id = @x));
+  CALL sp_pagina_activo(v_admin, @x, '{"n":"Alex Zzpag Otro","g":"Femenino","ed":17,"nv":"Carrera técnica","gr":1}', @x);
+  CALL _afirmar('"Femenino" se guarda como F; Carrera técnica', 'F Carrera técnica 1',
+    (SELECT CONCAT_WS(' ', genero, nivel, grado) FROM v_activo WHERE persona_id = @x));
 
   -- Validaciones con mensaje claro
   CALL _error_de(CONCAT('CALL sp_pagina_activo(', v_admin, ', NULL, ''{"n":"Zz Curp Mala","curp":"ABC"}'', @x)'), v_err);

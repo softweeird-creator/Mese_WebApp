@@ -11,13 +11,14 @@ En cada teléfono abra la dirección **una vez con internet** y elija “Agregar
 “Instalar en el teléfono”). Desde ese momento abre y guarda visitas aunque no haya señal.
 
 ## Qué incluye
-- Paneles: Participantes activos, Registro histórico, Familiares, Bajas y Visitas domiciliarias.
+- Paneles: Participantes activos, Registro histórico, Tutores e indirectos, Bajas y Seguimiento familiar.
+- "Ver ficha" (o tocar el nombre) en cualquier lista muestra todos los datos de la persona, también de las bajas.
 - Barra de búsqueda en cada panel (sin importar acentos ni mayúsculas) y buscador general en Inicio.
 - Filtros combinables y gráficas. Año de ingreso con campo manual y mes de ingreso con los 12 meses.
 - Altas, ediciones, bajas (con filtro por mes de baja) y reactivaciones.
 - Reporte del mes con filtros de mes, año, género y nivel; hoja de estadísticas imprimible y en PDF.
 
-### Visitas domiciliarias (formato “Seguimiento familiar”)
+### Seguimiento familiar (visitas domiciliarias)
 - Formulario por pasos pensado para el celular, con las 10 secciones del formato en papel, más datos de la visita y firmas.
 - Opciones grandes para tocar con el dedo, tablas de integrantes y antecedentes médicos que crecen según se necesite, totales de ingresos, apoyos y egresos calculados solos.
 - Buscador de participantes ya registrados para llenar sus datos automáticamente.

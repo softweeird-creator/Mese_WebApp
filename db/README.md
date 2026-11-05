@@ -25,12 +25,12 @@ mysql -u root -p < 02_catalogos.sql
 mysql -u root -p < 03_funciones_vistas.sql
 mysql -u root -p < 04_procedimientos.sql
 mysql -u root -p < 05_triggers.sql
-mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 70 pasaron, 0 fallaron
+mysql -u root -p < 07_pruebas.sql      # opcional: debe decir 73 pasaron, 0 fallaron
 mysql -u root -p < 08_seguridad.sql
 mysql -u root -p < 09_pagina.sql
 ```
 
-Probado en MySQL 8.0.46 con el registro binario activo (como viene por omisión): los 9 archivos instalan sin cambiar ninguna variable del servidor y `07_pruebas.sql` da 70 pasaron, 0 fallaron. No hace falta `log_bin_trust_function_creators`.
+Probado en MySQL 8.0.46 con el registro binario activo (como viene por omisión): los 9 archivos instalan sin cambiar ninguna variable del servidor y `07_pruebas.sql` da 73 pasaron, 0 fallaron. No hace falta `log_bin_trust_function_creators`.
 
 ## Diagrama
 
@@ -44,13 +44,15 @@ erDiagram
     participante ||--o{ participante_escolaridad : "escuela por ciclo"
     participante ||--o{ participante_beca : "becas"
     familia ||--o{ visita : "visitas / estudios"
-    visita ||--o{ visita_respuesta : "respuestas"
+    visita ||--o{ visita_respuesta : "respuestas de opción"
+    visita ||--o{ visita_respuesta_otro : "respuestas escritas"
     visita ||--o{ visita_integrante : "ingresos por persona"
     visita ||--o{ visita_monto : "apoyos y egresos"
     visita ||--o{ visita_antecedente : "antecedentes médicos"
     visita ||--o{ visita_firma : "firmas"
     cat_pregunta ||--o{ cat_opcion : "opciones"
     cat_opcion ||--o{ visita_respuesta : "elegida"
+    cat_pregunta ||--o{ visita_respuesta_otro : "Otro, ¿cuál?"
     familia }o--|| cat_colonia : "colonia"
     inscripcion }o--o| cat_causa_baja : "causa"
     inscripcion }o--o| cat_caso_exito : "concluyó"
@@ -70,7 +72,21 @@ Los Excel tienen problemas típicos que la base elimina:
 | Hojas BASE, BAJAS e HISTÓRICA con columnas distintas | La misma información en tres formatos | Una sola tabla `inscripcion` con fecha de ingreso y, si salió, fecha y causa |
 | `UNIÓN LIBRE`, `UNION LIBRE`, `UNIÓN LINRE` | Texto libre con variantes | Catálogos (`cat_*`) con llaves foráneas |
 
-El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunta`, `cat_opcion`) en lugar de una columna por pregunta. Si MESE cambia el formato en papel, se agregan renglones y no hay que modificar tablas. La llave foránea compuesta `(opcion_id, pregunta_id)` impide guardar una opción que no pertenece a esa pregunta.
+El cuestionario se guarda con un catálogo de preguntas y opciones (`cat_pregunta`, `cat_opcion`) en lugar de una columna por pregunta. Si MESE cambia el formato en papel, se agregan renglones y no hay que modificar tablas. Una respuesta de opción guarda solo la opción (`visita_respuesta`); la pregunta sale de la opción, así que no se puede guardar una opción en la pregunta equivocada. Lo escrito en "Otro, ¿cuál?" va aparte, en `visita_respuesta_otro`. La vista `v_respuesta_id` las junta.
+
+### Quinta forma normal y almacenamiento
+
+Además de lo anterior, la base está en quinta forma normal: cada dato depende solo de la llave completa de su tabla y ninguna tabla se puede partir sin perder información. El diagrama completo está en Lucidchart (*MESE · Modelo de base de datos (5FN)*). Se corrigió:
+
+| Antes | Problema | Ahora |
+|---|---|---|
+| `visita_respuesta(id, visita_id, pregunta_id, opcion_id, texto_otro)` | La opción ya determina la pregunta (dependencia que no sale de la llave) y había columnas vacías | `visita_respuesta(visita_id, opcion_id)` y `visita_respuesta_otro(visita_id, pregunta_id, texto_otro)` |
+| `visita_integrante.parentesco_id` | Repetía el parentesco que ya está en `familia_integrante` | Se quitó; si la visita trae un parentesco se actualiza en `familia_integrante` |
+| `visita_antecedente` con `persona_id` y además nombre y parentesco | Repetía `persona` | Se guarda una cosa o la otra, nunca las dos (CHECK) |
+| `cat_nivel_educativo.grados` | Se calcula con el mayor grado de `cat_nivel_grado` | Se quitó |
+| `cat_municipio.estado` como texto | El estado se repetía en cada municipio | Catálogo `cat_estado` |
+
+Para ocupar menos espacio: las listas fijas (estado de la visita, origen, momento del riesgo, rol en vacunas y firmas, acción de la bitácora, alcance, tipos de catálogo) son `ENUM` de 1 byte, con los valores en orden alfabético para que `ORDER BY` ordene igual que antes. Los códigos que solo llevan letras y números (CURP, código postal, CCT, claves de catálogos, login, hash de contraseña, id del teléfono) van en `ascii`, que en los índices ocupa 1 byte por carácter en lugar de 4. La sesión guarda el SHA-256 en `BINARY(32)` y la IP en `VARBINARY(16)`; los procedimientos siguen recibiendo el texto hexadecimal, así que el servidor no cambió. `persona.nombre_completo` es una columna `VIRTUAL` con índice, y `participante_escolaridad` usa `(participante_id, ciclo_id)` como llave en lugar de un id aparte. El género queda como `CHAR(1)` con `CHECK` y no como `ENUM`, porque un `ENUM` inválido da un error que los manejadores `SQLEXCEPTION` no atrapan.
 
 ## Lo que la aplicación usa
 
@@ -120,7 +136,7 @@ Sí conviene que la base sea la que garantiza las reglas, pero no todo debe ir e
 
 1. **Restricciones declarativas primero** (`NOT NULL`, `UNIQUE`, `CHECK`, llaves foráneas). Son rápidas, no se pueden saltar y no tienen errores de programación. Ejemplos: grado válido por nivel (`Secundaria 5°` no existe), CURP con formato correcto y una sola inscripción abierta por niño (con una columna generada y una llave única, sin trigger).
 2. **Procedimientos para cada operación** (alta, baja, guardar visita). Agrupan varios pasos en una transacción y devuelven mensajes claros. Además, el usuario de la aplicación solo tiene permiso de ejecutarlos, así que nadie puede escribir saltándose las reglas.
-3. **Triggers solo donde no hay otra forma.** Son 14: los que necesitan la fecha de hoy (no hay fechas futuras), los que comparan con otros renglones (periodos que se enciman, una sola respuesta en preguntas de respuesta única) y la bitácora de quién cambió qué.
+3. **Triggers solo donde no hay otra forma.** Son 15: los que necesitan la fecha de hoy (no hay fechas futuras), los que comparan con otros renglones (periodos que se enciman, una sola respuesta en preguntas de respuesta única) y la bitácora de quién cambió qué.
 
 No conviene poner toda la lógica en triggers porque:
 - Actúan a escondidas, y cuando algo falla es difícil saber cuál se disparó.

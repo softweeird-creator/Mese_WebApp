@@ -29,10 +29,11 @@ TRUNCATE cat_concepto_monto; TRUNCATE cat_vacuna; TRUNCATE cat_tipo_riesgo; TRUN
 TRUNCATE cat_certificado; TRUNCATE cat_caso_exito; TRUNCATE cat_causa_baja_estadistica; TRUNCATE cat_causa_baja;
 TRUNCATE cat_patrocinador; TRUNCATE cat_turno; TRUNCATE cat_ciclo_escolar; TRUNCATE cat_nivel_grado;
 TRUNCATE cat_nivel_educativo; TRUNCATE cat_tipo_sangre; TRUNCATE cat_estado_civil; TRUNCATE cat_parentesco;
-TRUNCATE cat_municipio;
+TRUNCATE cat_municipio; TRUNCATE cat_estado;
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT INTO cat_municipio (nombre) VALUES ('Morelia');
+INSERT INTO cat_estado (nombre) VALUES ('Michoacán');
+INSERT INTO cat_municipio (nombre, estado_id) SELECT 'Morelia', id FROM cat_estado WHERE nombre = 'Michoacán';
 
 INSERT INTO cat_parentesco (nombre, puede_ser_tutor) VALUES
  ('Madre',TRUE),('Padre',TRUE),('Tutor(a)',TRUE),('Abuela',TRUE),('Abuelo',TRUE),('Tía',TRUE),('Tío',TRUE),
@@ -45,15 +46,19 @@ INSERT INTO cat_estado_civil (nombre) VALUES
 
 INSERT INTO cat_tipo_sangre (nombre) VALUES ('O+'),('O-'),('A+'),('A-'),('B+'),('B-'),('AB+'),('AB-'),('No sabe');
 
-INSERT INTO cat_nivel_educativo (clave, nombre, grados, orden) VALUES
- ('PREESC','Preescolar',3,1),('PRIM','Primaria',6,2),('SEC','Secundaria',3,3),('SECA','Secundaria abierta',3,4),
- ('TEC','Carrera técnica',3,5),('OFICIO','Oficio',3,6),('PREPA','Preparatoria',3,7),('PREPAA','Preparatoria abierta',3,8),
- ('LIC','Licenciatura',5,9),('POSG','Posgrado',3,10),('INEA','INEA',3,11),('ESP','Educación especial',6,12);
+INSERT INTO cat_nivel_educativo (clave, nombre, orden) VALUES
+ ('PREESC','Preescolar',1),('PRIM','Primaria',2),('SEC','Secundaria',3),('SECA','Secundaria abierta',4),
+ ('TEC','Carrera técnica',5),('OFICIO','Oficio',6),('PREPA','Preparatoria',7),('PREPAA','Preparatoria abierta',8),
+ ('LIC','Licenciatura',9),('POSG','Posgrado',10),('INEA','INEA',11),('ESP','Educación especial',12);
 
--- Un renglón por cada grado válido de cada nivel (Primaria 1..6, Secundaria 1..3, ...)
+-- Un renglón por cada grado válido de cada nivel (Primaria 1..6, Secundaria 1..3, ...).
+-- Cuántos grados tiene cada nivel solo se guarda aquí.
 INSERT INTO cat_nivel_grado (nivel_id, grado)
-WITH RECURSIVE g(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM g WHERE n < 6)
-SELECT ne.id, g.n FROM cat_nivel_educativo ne JOIN g ON g.n <= ne.grados;
+WITH RECURSIVE g(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM g WHERE n < 6),
+m(clave, grados) AS (SELECT 'PREESC', 3 UNION ALL SELECT 'PRIM', 6 UNION ALL SELECT 'SEC', 3 UNION ALL SELECT 'SECA', 3
+  UNION ALL SELECT 'TEC', 3 UNION ALL SELECT 'OFICIO', 3 UNION ALL SELECT 'PREPA', 3 UNION ALL SELECT 'PREPAA', 3
+  UNION ALL SELECT 'LIC', 5 UNION ALL SELECT 'POSG', 3 UNION ALL SELECT 'INEA', 3 UNION ALL SELECT 'ESP', 6)
+SELECT ne.id, g.n FROM cat_nivel_educativo ne JOIN m ON m.clave = ne.clave JOIN g ON g.n <= m.grados;
 
 INSERT INTO cat_ciclo_escolar (nombre, inicio, fin)
 WITH RECURSIVE a(y) AS (SELECT 1995 UNION ALL SELECT y + 1 FROM a WHERE y < 2035)
@@ -157,8 +162,8 @@ DROP PROCEDURE _pregunta;
 -- Permisos y roles. Se actualizan sin borrar, porque los usuarios ya los usan.
 INSERT INTO cat_permiso (clave, nombre, tipo, orden) VALUES
  ('VER_ACTIVOS','Participantes activos','VER',1),('VER_HISTORICO','Registro histórico','VER',2),
- ('VER_FAMILIARES','Familiares','VER',3),('VER_BAJAS','Bajas','VER',4),
- ('VER_VISITAS','Visitas domiciliarias','VER',5),('VER_REPORTES','Reporte del mes y estadísticas','VER',6),
+ ('VER_FAMILIARES','Tutores e indirectos','VER',3),('VER_BAJAS','Bajas','VER',4),
+ ('VER_VISITAS','Seguimiento familiar','VER',5),('VER_REPORTES','Reporte del mes y estadísticas','VER',6),
  ('AGREGAR','Agregar participantes, familiares y registros','HACER',7),('EDITAR','Editar datos','HACER',8),
  ('BAJAS','Dar de baja y reactivar','HACER',9),('BORRAR','Borrar registros','HACER',10),
  ('VISITAS','Capturar y editar visitas','HACER',11),('EXPORTAR','Descargar Excel o PDF e imprimir','HACER',12)

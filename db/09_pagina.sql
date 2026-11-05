@@ -162,7 +162,7 @@ BEGIN
   END IF;
 
   CALL _pagina_validar(p_id, fn_j(p_json, 'curp'), fn_j(p_json, 'tel'), fn_j(p_json, 'telp'), fn_j(p_json, 'mail'));
-  SET v_gen = CASE fn_j(p_json, 'g') WHEN 'Mujer' THEN 'F' WHEN 'Hombre' THEN 'M' END;
+  SET v_gen = fn_genero_pagina(fn_j(p_json, 'g'));
   SET v_nac = fn_jfecha(p_json, 'fn');
   IF v_nac IS NULL AND fn_jnum(p_json, 'ed') BETWEEN 1 AND 99 THEN      -- solo se sabe la edad
     SET v_nac = MAKEDATE(YEAR(CURDATE()) - fn_jnum(p_json, 'ed'), 1), v_aprox = TRUE;
@@ -294,7 +294,7 @@ BEGIN
   CALL _pagina_puede(p_usuario, IF(p_id IS NULL, 'AGREGAR', 'EDITAR'), NULL);
   IF fn_j(p_json, 'n') IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Escriba el nombre completo.'; END IF;
   CALL _pagina_validar(p_id, NULL, fn_j(p_json, 'tel'), NULL, NULL);
-  SET v_gen = CASE fn_j(p_json, 'g') WHEN 'Mujer' THEN 'F' WHEN 'Hombre' THEN 'M' END;
+  SET v_gen = fn_genero_pagina(fn_j(p_json, 'g'));
 
   IF p_id IS NULL THEN
     -- La familia es la del participante a su cargo (de los que este usuario puede ver)
@@ -375,7 +375,7 @@ BEGIN
   CALL _pagina_validar(p_id, NULL, fn_j(p_json, 'tel'), NULL, NULL);
   CALL _partir_nombre(fn_j(p_json, 'n'), v_n, v_p, v_m);
 
-  SET v_gen = CASE fn_j(p_json, 'g') WHEN 'Mujer' THEN 'F' WHEN 'Hombre' THEN 'M' END;
+  SET v_gen = fn_genero_pagina(fn_j(p_json, 'g'));
   SET v_res = COALESCE(fn_j(p_json, 'res'), 'No concluyó');
   SET v_ent = fn_jfecha(p_json, 'fe'), v_sal = fn_jfecha(p_json, 'fs');
   IF v_ent IS NULL AND REGEXP_SUBSTR(COALESCE(fn_j(p_json, 'ci'), ''), '^(19|20)[0-9]{2}') <> '' THEN
@@ -436,7 +436,7 @@ BEGIN
          nivel_inicial_id     = (SELECT id FROM cat_nivel_educativo WHERE clave = v_nvi),
          grado_inicial        = IF(v_nvi IS NULL, NULL, COALESCE(fn_jnum(p_json, 'gri'), 1)),
          nivel_final_id       = (SELECT id FROM cat_nivel_educativo WHERE clave = v_nvf),
-         grado_final          = IF(v_nvf IS NULL, NULL, COALESCE(fn_jnum(p_json, 'gr'), (SELECT grados FROM cat_nivel_educativo WHERE clave = v_nvf))),
+         grado_final          = IF(v_nvf IS NULL, NULL, COALESCE(fn_jnum(p_json, 'gr'), (SELECT MAX(g.grado) FROM cat_nivel_grado g JOIN cat_nivel_educativo ne ON ne.id = g.nivel_id WHERE ne.clave = v_nvf))),
          riesgo_ingreso_id    = (SELECT id FROM cat_nivel_riesgo WHERE nombre = fn_j(p_json, 'rni')),
          riesgo_egreso_id     = (SELECT id FROM cat_nivel_riesgo WHERE nombre = fn_j(p_json, 'rne'))
    WHERE id = v_insc;
