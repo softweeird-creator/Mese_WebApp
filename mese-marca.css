@@ -1,0 +1,74 @@
+/* =====================================================================
+   MESE · Capa de marca "bonita"
+   Paleta oficial: azul marino, verde, magenta y amarillo.
+   Confeti (anillos abiertos y astillas) y la forma escalonada verde,
+   dibujados en SVG: no pesan casi nada y se ven nítidos en cualquier pantalla.
+   Se carga DESPUÉS del estilo principal y solo añade decoración.
+   ===================================================================== */
+:root{--mx-az:#263675;--mx-vb:#4cb263;--mx-mg:#e0218a;--mx-mgt:#b0136a;--mx-am:#fbbe37;--mx-amt:#8a5a00}
+
+/* ---------- Capa de confeti de fondo (la crea mese-marca.js) ---------- */
+.mx-fondo{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.mx-fondo svg{position:absolute;display:block}
+.mx-fondo .mx-ab{right:-40px;bottom:-40px;width:min(340px,45vw);opacity:.5}
+.mx-fondo .mx-ar,.mx-fondo .mx-esc{display:none}
+main,nav{position:relative;z-index:1}
+nav{position:sticky}
+@media(max-width:860px){.mx-fondo .mx-ab{width:200px;opacity:.35}}
+
+/* ---------- Menú lateral: confeti al pie ---------- */
+nav::after{content:"";position:absolute;left:0;right:0;bottom:0;height:200px;pointer-events:none;z-index:-1;
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 250 200'%3E%3Cg fill='none'%3E%3Ccircle cx='40' cy='175' r='62' stroke='%234cb263' stroke-width='20' pathLength='100' stroke-dasharray='80 20' transform='rotate(-20 40 175)'/%3E%3Ccircle cx='200' cy='120' r='16' stroke='%23e0218a' stroke-width='6' pathLength='100' stroke-dasharray='82 18' transform='rotate(30 200 120)'/%3E%3Ccircle cx='150' cy='182' r='22' stroke='%23ffffff' stroke-opacity='.35' stroke-width='6' pathLength='100' stroke-dasharray='80 20' transform='rotate(160 150 182)'/%3E%3Ccircle cx='120' cy='70' r='9' stroke='%23fbbe37' stroke-width='4' pathLength='100' stroke-dasharray='78 22' transform='rotate(110 120 70)'/%3E%3C/g%3E%3Cpolygon points='215,170 232,159 238,168 216,181' fill='%23fbbe37'/%3E%3Cpolygon points='60,60 66,47 76,52 67,70' fill='%234cb263'/%3E%3Cpolygon points='170,40 186,30 191,38 171,49' fill='%23ffffff' fill-opacity='.5'/%3E%3C/svg%3E") no-repeat center bottom/100% auto}
+nav>a{position:relative}
+@media(max-width:860px),(max-height:640px){nav::after{display:none}}
+
+/* ---------- Portada (cuadro azul de bienvenida) ---------- */
+.hero{background:var(--mx-az) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 220'%3E%3Cg fill='none'%3E%3Ccircle cx='372' cy='40' r='72' stroke='%234cb263' stroke-width='22' pathLength='100' stroke-dasharray='81 19' transform='rotate(65 372 40)'/%3E%3Ccircle cx='255' cy='160' r='18' stroke='%23e0218a' stroke-width='6' pathLength='100' stroke-dasharray='83 17' transform='rotate(20 255 160)'/%3E%3Ccircle cx='170' cy='45' r='11' stroke='%23fbbe37' stroke-width='4.5' pathLength='100' stroke-dasharray='80 20' transform='rotate(140 170 45)'/%3E%3Ccircle cx='345' cy='190' r='26' stroke='%23ffffff' stroke-opacity='.3' stroke-width='6' pathLength='100' stroke-dasharray='82 18' transform='rotate(200 345 190)'/%3E%3C/g%3E%3Cpolygon points='205,95 222,84 228,93 206,106' fill='%23fbbe37'/%3E%3Cpolygon points='292,72 298,58 308,63 299,82' fill='%23e0218a'/%3E%3Cpolygon points='112,178 132,166 138,175 113,190' fill='%234cb263'/%3E%3Cpolygon points='405,120 414,112 418,118 406,128' fill='%23ffffff' fill-opacity='.6'/%3E%3C/svg%3E") no-repeat right center/auto 100%}
+.hero::after{display:none}
+.hero .eyebrow{color:var(--mx-am)}
+@media(max-width:640px){.hero{background-image:none}.hero::after{display:block}}
+
+/* ---------- Cuadros de Inicio: cada uno con un color de la marca ---------- */
+.cards a{transition:transform .15s,box-shadow .15s}
+.cards a:hover{transform:translateY(-2px);box-shadow:0 8px 20px #26367522}
+.cards a:nth-child(4n+2){border-top-color:var(--mx-mg)}.cards a:nth-child(4n+2) b{color:var(--mx-mgt)}
+.cards a:nth-child(4n+3){border-top-color:var(--mx-am)}.cards a:nth-child(4n+3) b{color:var(--mx-amt)}
+.cards a:nth-child(4n+4){border-top-color:var(--mx-az)}.cards a:nth-child(4n+4) b{color:var(--mx-az)}
+.cards a:nth-child(4n+1):hover,.cards a:nth-child(4n+2):hover,.cards a:nth-child(4n+3):hover,.cards a:nth-child(4n+4):hover{border-top-width:7px}
+
+/* ---------- Indicadores y gráficas con los cuatro colores ---------- */
+.kp div:nth-child(4n+2){border-left-color:var(--mx-mg)}
+.kp div:nth-child(4n+3){border-left-color:var(--mx-am)}
+.kp div:nth-child(4n+4){border-left-color:var(--mx-az)}
+.ch:nth-child(3n+1) .b i{background:var(--mx-vb)}
+.ch:nth-child(3n+2) .b i{background:var(--mx-az)}
+.ch:nth-child(3n+3) .b i{background:var(--mx-mg)}
+
+/* ---------- Detalles ---------- */
+h1::after{content:"";display:block;width:56px;height:5px;border-radius:99px;margin-top:.35rem;
+ background:linear-gradient(90deg,var(--mx-vb) 0 40%,var(--mx-mg) 40% 65%,var(--mx-am) 65% 85%,var(--mx-az) 85%)}
+.hero h1::after{display:none}
+#ok{border-left-color:var(--mx-am)}
+fieldset{border-top:4px solid var(--mx-vb)}
+fieldset:nth-of-type(4n+2){border-top-color:var(--mx-mg)}
+fieldset:nth-of-type(4n+3){border-top-color:var(--mx-am)}
+fieldset:nth-of-type(4n+4){border-top-color:var(--mx-az)}
+
+/* ---------- Pantalla de inicio de sesión ---------- */
+#login{isolation:isolate}
+.mx-fondo-login{position:absolute;z-index:-1}
+.mx-fondo-login .mx-ab{display:block;opacity:1;width:min(400px,45vw);right:-90px;top:-90px;bottom:auto;transform:rotate(180deg)}
+.mx-fondo-login .mx-ar{display:block;left:-50px;top:-50px;width:min(440px,55vw);opacity:1}
+.mx-fondo-login .mx-esc{display:block;right:0;bottom:0;width:min(420px,50vw);left:auto}
+.mx-tarjeta{position:relative;border-top:6px solid var(--mx-vb)}
+#login h1::after{margin-left:auto;margin-right:auto}
+@media(max-width:640px){.mx-fondo-login .mx-ab{width:220px}.mx-fondo-login .mx-ar{width:220px}.mx-fondo-login .mx-esc{width:260px}}
+
+/* ---------- Lluvia de confeti al guardar / entrar ---------- */
+.mx-lluvia{position:fixed;inset:0;pointer-events:none;z-index:100;overflow:hidden}
+.mx-p{position:absolute;top:-30px;will-change:transform,opacity}
+.mx-p.r{border-radius:50%;border-style:solid;border-right-color:transparent!important}
+.mx-p.s{clip-path:polygon(0 35%,75% 0,100% 45%,5% 100%)}
+
+@media print{.mx-fondo,.mx-lluvia,nav::after{display:none!important}h1::after{display:none}}
+@media(prefers-reduced-motion:reduce){.cards a{transition:none}.cards a:hover{transform:none}}

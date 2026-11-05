@@ -11,6 +11,9 @@ En cada teléfono abra la dirección **una vez con internet** y elija “Agregar
 “Instalar en el teléfono”). Desde ese momento abre y guarda visitas aunque no haya señal.
 
 ## Qué incluye
+- Identidad visual de MESE: colores oficiales (azul marino, verde, magenta y amarillo), confeti de anillos y astillas,
+  forma escalonada verde en el inicio de sesión y lluvia de confeti al guardar. Todo está en `mese-marca.css` y
+  `mese-marca.js`, dibujado en SVG (sin imágenes pesadas). Respeta la opción “reducir movimiento” del teléfono.
 - Paneles: Participantes activos, Registro histórico, Familiares, Bajas y Visitas domiciliarias.
 - Barra de búsqueda en cada panel (sin importar acentos ni mayúsculas) y buscador general en Inicio.
 - Filtros combinables y gráficas. Año de ingreso con campo manual y mes de ingreso con los 12 meses.
